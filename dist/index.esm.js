@@ -236,8 +236,8 @@ function clampToBorder(val, prevVal, nowMin, nowMax, min, max, offsetMin, offset
  * @param inRight 是否在右侧边界
  * @param inBottom 是否在底部边界
  * @param inLeft 是否在左侧边界
- * @param x 当前X坐标
- * @param y 当前Y坐标
+ * @param x 当前 X 坐标
+ * @param y 当前 Y 坐标
  * @param left 边界左侧位置
  * @param top 边界顶部位置
  * @param right 边界右侧位置
@@ -245,6 +245,20 @@ function clampToBorder(val, prevVal, nowMin, nowMax, min, max, offsetMin, offset
  * @returns 返回边界类型，如 'lt'(左上), 'tr'(右上), 't'(上), 'r'(右), 'rb'(右下), 'b'(下), 'bl'(左下), 'l'(左), ''(不在边界)
  */
 function calcBorderType(inTop, inRight, inBottom, inLeft, x, y, left, top, right, bottom) {
+    // --- 同时触碰两个相邻边界时直接返回角类型 ---
+    if (inTop && inLeft) {
+        return 'lt';
+    }
+    if (inTop && inRight) {
+        return 'tr';
+    }
+    if (inBottom && inRight) {
+        return 'rb';
+    }
+    if (inBottom && inLeft) {
+        return 'bl';
+    }
+    // --- 只触碰单边时使用鼠标位置 20px 容差判断是否靠近角 ---
     if (inTop) {
         return (x - left <= 20) ? 'lt' : (right - x <= 20) ? 'tr' : 't';
     }
