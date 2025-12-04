@@ -265,7 +265,6 @@ function calcBorderType(inTop, inRight, inBottom, inLeft, x, y, left, top, right
  * @param opt 回调选项
  */
 function move(e, opt) {
-    const target = e.target;
     isMoving = true;
     set(opt.cursor ?? getComputedStyle(e.target).cursor);
     let { x: tx, y: ty } = getEventPos(e);
@@ -293,7 +292,6 @@ function move(e, opt) {
     let objectLeft = 0, objectTop = 0, objectWidth = 0, objectHeight = 0;
     let offsetLeft = 0, offsetTop = 0, offsetRight = 0, offsetBottom = 0;
     const moveTimes = [];
-    target.style.touchAction = 'none';
     down(e, {
         start: () => {
             if (opt.start?.(tx, ty) === false) {
@@ -367,7 +365,6 @@ function move(e, opt) {
         },
         end: (ne) => {
             opt.end?.(moveTimes, ne);
-            target.style.touchAction = '';
         }
     });
     return { 'left': left, 'top': top, 'right': right, 'bottom': bottom };
@@ -718,7 +715,7 @@ function drag(e, el, opt) {
  * limitations under the License.
  */
 /**
- * --- 绑定滚轮缩放，需要绑定到 wheel 事件上 ---
+ * --- 绑定滚轮缩放 ---
  * @param oe 触发的 WheelEvent 事件
  * @param handler 回调函数
  */
@@ -726,6 +723,7 @@ function scaleWheel(oe, handler) {
     if (!oe.deltaY) {
         return;
     }
+    oe.preventDefault();
     const delta = Math.abs(oe.deltaY);
     const zoomFactor = delta * (delta > 50 ? 0.0015 : 0.003);
     handler(oe, oe.deltaY < 0 ? 1 + zoomFactor : 1 - zoomFactor, { 'x': 0, 'y': 0 });
@@ -736,6 +734,10 @@ function scaleWheel(oe, handler) {
  * @param handler 回调函数
  */
 function scale(oe, handler) {
+    if (oe instanceof WheelEvent) {
+        scaleWheel(oe, handler);
+        return;
+    }
     const target = oe.target;
     if (!target) {
         return;
@@ -1026,4 +1028,4 @@ function gesture(oe, before, handler) {
     }
 }
 
-export { allowEvent, click, dblClick, down, drag, gesture, getData as getDragData, getEventPos, getMoveDir, isMoving, isTouch, long, move, resize, scale, scaleWheel, set as setCursor, setData as setDragData };
+export { allowEvent, click, dblClick, down, drag, gesture, getData as getDragData, getEventPos, getMoveDir, isMoving, isTouch, long, move, resize, scale, set as setCursor, setData as setDragData };

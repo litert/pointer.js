@@ -35,14 +35,15 @@ interface IScaleState {
 }
 
 /**
- * --- 绑定滚轮缩放，需要绑定到 wheel 事件上 ---
+ * --- 绑定滚轮缩放 ---
  * @param oe 触发的 WheelEvent 事件
  * @param handler 回调函数
  */
-export function scaleWheel(oe: WheelEvent, handler: types.TScaleHandler): void {
+function scaleWheel(oe: WheelEvent, handler: types.TScaleHandler): void {
     if (!oe.deltaY) {
         return;
     }
+    oe.preventDefault();
     const delta = Math.abs(oe.deltaY);
     const zoomFactor = delta * (delta > 50 ? 0.0015 : 0.003);
     handler(oe, oe.deltaY < 0 ? 1 + zoomFactor : 1 - zoomFactor, { 'x': 0, 'y': 0 }) as any;
@@ -53,7 +54,11 @@ export function scaleWheel(oe: WheelEvent, handler: types.TScaleHandler): void {
  * @param oe 触发的 PointerEvent 事件
  * @param handler 回调函数
  */
-export function scale(oe: PointerEvent, handler: types.TScaleHandler): void {
+export function scale(oe: PointerEvent | WheelEvent, handler: types.TScaleHandler): void {
+    if (oe instanceof WheelEvent) {
+        scaleWheel(oe, handler);
+        return;
+    }
     const target = oe.target as HTMLElement;
     if (!target) {
         return;

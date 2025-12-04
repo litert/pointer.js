@@ -46,5 +46,5 @@ export { move, isMoving } from './move';
 export { click, dblClick, long, allowEvent } from './click';
 export { resize } from './resize';
 export { drag, getData as getDragData, setData as setDragData } from './drag';
-export { scale, scaleWheel } from './scale';
+export { scale } from './scale';
 export { gesture } from './gesture';

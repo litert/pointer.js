@@ -271,7 +271,6 @@
      * @param opt 回调选项
      */
     function move(e, opt) {
-        const target = e.target;
         exports.isMoving = true;
         set(opt.cursor ?? getComputedStyle(e.target).cursor);
         let { x: tx, y: ty } = getEventPos(e);
@@ -299,7 +298,6 @@
         let objectLeft = 0, objectTop = 0, objectWidth = 0, objectHeight = 0;
         let offsetLeft = 0, offsetTop = 0, offsetRight = 0, offsetBottom = 0;
         const moveTimes = [];
-        target.style.touchAction = 'none';
         down(e, {
             start: () => {
                 if (opt.start?.(tx, ty) === false) {
@@ -373,7 +371,6 @@
             },
             end: (ne) => {
                 opt.end?.(moveTimes, ne);
-                target.style.touchAction = '';
             }
         });
         return { 'left': left, 'top': top, 'right': right, 'bottom': bottom };
@@ -724,7 +721,7 @@
      * limitations under the License.
      */
     /**
-     * --- 绑定滚轮缩放，需要绑定到 wheel 事件上 ---
+     * --- 绑定滚轮缩放 ---
      * @param oe 触发的 WheelEvent 事件
      * @param handler 回调函数
      */
@@ -732,6 +729,7 @@
         if (!oe.deltaY) {
             return;
         }
+        oe.preventDefault();
         const delta = Math.abs(oe.deltaY);
         const zoomFactor = delta * (delta > 50 ? 0.0015 : 0.003);
         handler(oe, oe.deltaY < 0 ? 1 + zoomFactor : 1 - zoomFactor, { 'x': 0, 'y': 0 });
@@ -742,6 +740,10 @@
      * @param handler 回调函数
      */
     function scale(oe, handler) {
+        if (oe instanceof WheelEvent) {
+            scaleWheel(oe, handler);
+            return;
+        }
         const target = oe.target;
         if (!target) {
             return;
@@ -1046,7 +1048,6 @@
     exports.move = move;
     exports.resize = resize;
     exports.scale = scale;
-    exports.scaleWheel = scaleWheel;
     exports.setCursor = set;
     exports.setDragData = setData;
 
