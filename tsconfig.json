@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "module": "esnext",
+        "removeComments": false,
+        "preserveConstEnums": true,
+        "rootDir": "./",
+        "outDir": "./dist/",
+        "sourceMap": false,
+        "target": "ES2022",
+        "strict": true,
+        "declaration": true,
+        "declarationMap": false,
+        "newLine": "LF",
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true
+    },
+    "include": [
+        "./**/*.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "scripts"
+    ]
+}

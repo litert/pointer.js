@@ -1,0 +1,11 @@
+.github/
+.playwright-mcp/
+.vscode/
+.VSCodeCounter/
+.vs/
+.git/
+node_modules/
+.DS_Store
+*.d.ts
+!/types/*.d.ts
+package-lock.json

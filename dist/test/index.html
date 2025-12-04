@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@litert/pointer - Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #1e293b;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        h2 {
+            color: #334155;
+            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .demo-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+        }
+        .demo-area {
+            background: #f1f5f9;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            height: 200px;
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+        }
+        .draggable {
+            width: 80px;
+            height: 80px;
+            background: #3b82f6;
+            border-radius: 8px;
+            position: absolute;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        .resizable {
+            width: 120px;
+            height: 80px;
+            background: #0ea5e9;
+            border-radius: 8px;
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+        }
+        .resize-handle {
+            width: 14px;
+            height: 14px;
+            background: #fff;
+            border: 2px solid #0ea5e9;
+            border-radius: 50%;
+            position: absolute;
+            cursor: se-resize;
+        }
+        .resize-handle.rb { right: -7px; bottom: -7px; }
+        .resize-handle.r { right: -7px; top: 50%; transform: translateY(-50%); cursor: e-resize; }
+        .resize-handle.b { bottom: -7px; left: 50%; transform: translateX(-50%); cursor: s-resize; }
+        .resize-handle.lt { left: -7px; top: -7px; cursor: nw-resize; }
+        .resize-handle.t { top: -7px; left: 50%; transform: translateX(-50%); cursor: n-resize; }
+        .resize-handle.tr { right: -7px; top: -7px; cursor: ne-resize; }
+        .resize-handle.l { left: -7px; top: 50%; transform: translateY(-50%); cursor: w-resize; }
+        .resize-handle.bl { left: -7px; bottom: -7px; cursor: sw-resize; }
+        .click-area {
+            background: #3b82f6;
+            border-radius: 8px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+        }
+        .click-area:hover {
+            background: #2563eb;
+        }
+        .click-area:active {
+            transform: scale(0.98);
+        }
+        .click-area .count {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .click-area .hint {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        .long-press-area {
+            background: #f97316;
+            border-radius: 8px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .long-press-area .status {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .long-press-area .progress {
+            width: 80%;
+            height: 6px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+        .long-press-area .progress-bar {
+            height: 100%;
+            background: #fff;
+            width: 0%;
+            transition: width 0.5s linear;
+        }
+        .drag-source {
+            width: 60px;
+            height: 60px;
+            background: #8b5cf6;
+            border-radius: 8px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 600;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+        .drop-target {
+            flex: 1;
+            margin-left: 20px;
+            background: #f1f5f9;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .drop-target[data-hover] {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+        .drop-target.has-item {
+            background: #8b5cf6;
+            border-style: solid;
+            border-color: #8b5cf6;
+            color: #fff;
+        }
+        .drag-drop-container {
+            display: flex;
+            align-items: center;
+            height: 100%;
+            padding: 20px;
+        }
+        .log {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #64748b;
+            max-height: 60px;
+            overflow-y: auto;
+        }
+        .state-display {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+        .state-item {
+            padding: 10px 20px;
+            background: #f1f5f9;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #64748b;
+            transition: all 0.2s;
+        }
+        .state-item.active {
+            background: #3b82f6;
+            color: #fff;
+        }
+        .scale-area {
+            background: #f1f5f9;
+            border-radius: 8px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            touch-action: none;
+        }
+        .scale-box {
+            width: 100px;
+            height: 100px;
+            background: #10b981;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 600;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .gesture-area {
+            background: #f1f5f9;
+            border-radius: 8px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-weight: 600;
+            touch-action: none;
+            cursor: grab;
+        }
+        .gesture-area .direction {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .gesture-area .hint {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>@litert/pointer Demo</h1>
+
+        <!-- 状态显示 -->
+        <div class="demo-card" style="margin-bottom: 20px;">
+            <h2>Global State</h2>
+            <div class="state-display">
+                <div class="state-item" id="state-move">isMoving: false</div>
+            </div>
+        </div>
+
+        <div class="demo-grid">
+            <!-- move 演示 -->
+            <div class="demo-card">
+                <h2>move - Drag</h2>
+                <div class="demo-area" id="move-area">
+                    <div class="draggable" id="drag-box" style="left: 20px; top: 20px;">
+                        Drag me
+                    </div>
+                </div>
+                <div class="log" id="move-log">Position: (20, 20)</div>
+            </div>
+
+            <!-- resize 演示 -->
+            <div class="demo-card">
+                <h2>resize - Resize</h2>
+                <div class="demo-area" id="resize-area">
+                    <div class="resizable" id="resize-box">
+                        Resize me
+                        <div class="resize-handle lt" data-border="lt"></div>
+                        <div class="resize-handle t" data-border="t"></div>
+                        <div class="resize-handle tr" data-border="tr"></div>
+                        <div class="resize-handle r" data-border="r"></div>
+                        <div class="resize-handle rb" data-border="rb"></div>
+                        <div class="resize-handle b" data-border="b"></div>
+                        <div class="resize-handle bl" data-border="bl"></div>
+                        <div class="resize-handle l" data-border="l"></div>
+                    </div>
+                </div>
+                <div class="log" id="resize-log">Size: 120 x 80</div>
+            </div>
+
+            <!-- click / dblClick 演示 -->
+            <div class="demo-card">
+                <h2>click / dblClick</h2>
+                <div class="demo-area">
+                    <div class="click-area" id="click-area">
+                        <div class="count" id="click-count">0</div>
+                        <div class="hint">Click: +1 | Double-click: +10</div>
+                    </div>
+                </div>
+                <div class="log" id="click-log">Click or double-click the area</div>
+            </div>
+
+            <!-- long 演示 -->
+            <div class="demo-card">
+                <h2>long - Long Press</h2>
+                <div class="demo-area">
+                    <div class="long-press-area" id="long-area">
+                        <div class="status" id="long-status">👆 Hold</div>
+                        <div>Press and hold for 500ms</div>
+                        <div class="progress">
+                            <div class="progress-bar" id="long-progress"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="log" id="long-log">Press and hold the area</div>
+            </div>
+
+            <!-- drag 演示 -->
+            <div class="demo-card">
+                <h2>drag - Drag & Drop</h2>
+                <div class="demo-area">
+                    <div class="drag-drop-container">
+                        <div class="drag-source" id="drag-source">
+                            Drag
+                        </div>
+                        <div class="drop-target" id="drop-target" data-drop>
+                            Drop here
+                        </div>
+                    </div>
+                </div>
+                <div class="log" id="drag-log">Drag the box to the target area</div>
+            </div>
+
+            <!-- 边界检测演示 -->
+            <div class="demo-card">
+                <h2>move - Border Detection</h2>
+                <div class="demo-area" id="border-area">
+                    <div class="draggable" id="border-box" style="left: 60px; top: 60px;">
+                        Border
+                    </div>
+                </div>
+                <div class="log" id="border-log">Drag to the edge to detect borders</div>
+            </div>
+
+            <!-- scale 演示 -->
+            <div class="demo-card">
+                <h2>scale - Zoom</h2>
+                <div class="demo-area">
+                    <div class="scale-area" id="scale-area">
+                        <div class="scale-box" id="scale-box">
+                            Zoom
+                        </div>
+                    </div>
+                </div>
+                <div class="log" id="scale-log">Scroll wheel to zoom, drag to pan</div>
+            </div>
+
+            <!-- gesture 演示 -->
+            <div class="demo-card">
+                <h2>gesture - Swipe</h2>
+                <div class="demo-area">
+                    <div class="gesture-area" id="gesture-area">
+                        <div class="direction" id="gesture-dir">↕↔</div>
+                        <div>Swipe or scroll</div>
+                        <div class="hint">Pull to trigger gesture</div>
+                    </div>
+                </div>
+                <div class="log" id="gesture-log">Swipe up/down/left/right</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../index.umd.js"></script>
+    <script>
+        // --- 状态更新 ---
+        function updateState() {
+            const moveEl = document.getElementById('state-move');
+            moveEl.textContent = 'isMoving: ' + pointer.isMoving;
+            moveEl.classList.toggle('active', pointer.isMoving);
+            requestAnimationFrame(updateState);
+        }
+        updateState();
+
+        // --- move 演示 ---
+        const dragBox = document.getElementById('drag-box');
+        const moveArea = document.getElementById('move-area');
+        const moveLog = document.getElementById('move-log');
+        let dragLeft = 20, dragTop = 20;
+
+        function handleDragMove(e) {
+            pointer.move(e, {
+                'areaObject': moveArea,
+                'object': dragBox,
+                'move': function(e, detail) {
+                    dragLeft += detail.ox;
+                    dragTop += detail.oy;
+                    dragBox.style.left = dragLeft + 'px';
+                    dragBox.style.top = dragTop + 'px';
+                    moveLog.textContent = 'Position: (' + Math.round(dragLeft) + ', ' + Math.round(dragTop) + ')';
+                }
+            });
+        }
+        dragBox.addEventListener('mousedown', handleDragMove);
+        dragBox.addEventListener('touchstart', handleDragMove);
+
+        // --- resize 演示 ---
+        const resizeBox = document.getElementById('resize-box');
+        const resizeLog = document.getElementById('resize-log');
+        const resizeHandles = resizeBox.querySelectorAll('.resize-handle');
+
+        resizeHandles.forEach(function(handle) {
+            function handleResize(e) {
+                e.stopPropagation();
+                const border = handle.dataset.border;
+                pointer.resize(e, {
+                    'object': resizeBox,
+                    'border': border,
+                    'minWidth': 60,
+                    'minHeight': 40,
+                    'maxWidth': 300,
+                    'maxHeight': 180,
+                    'move': function(left, top, width, height) {
+                        // resizeBox.style.left = left + 'px';
+                        // resizeBox.style.top = top + 'px';
+                        resizeBox.style.width = width + 'px';
+                        resizeBox.style.height = height + 'px';
+                        resizeLog.textContent = 'Size: ' + Math.round(width) + ' x ' + Math.round(height) + ' | Pos: (' + Math.round(left) + ', ' + Math.round(top) + ')';
+                    }
+                });
+            }
+            handle.addEventListener('mousedown', handleResize);
+            handle.addEventListener('touchstart', handleResize);
+        });
+
+        // --- click / dblClick 演示 ---
+        const clickArea = document.getElementById('click-area');
+        const clickCount = document.getElementById('click-count');
+        const clickLog = document.getElementById('click-log');
+        let count = 0;
+
+        function handleClick(e) {
+            pointer.dblClick(e, function(e, x, y) {
+                count += 10;
+                clickCount.textContent = count;
+                clickLog.textContent = 'Double click +10 at (' + Math.round(x) + ', ' + Math.round(y) + ')';
+            });
+            pointer.click(e, function(e, x, y) {
+                count += 1;
+                clickCount.textContent = count;
+                clickLog.textContent = 'Click +1 at (' + Math.round(x) + ', ' + Math.round(y) + ')';
+            });
+        }
+        clickArea.addEventListener('mousedown', handleClick);
+        clickArea.addEventListener('touchstart', handleClick);
+
+        // --- long 演示 ---
+        const longArea = document.getElementById('long-area');
+        const longStatus = document.getElementById('long-status');
+        const longProgress = document.getElementById('long-progress');
+        const longLog = document.getElementById('long-log');
+
+        function handleLong(e) {
+            pointer.down(e, {
+                'down': function() {
+                    longProgress.style.width = '100%';
+                    longStatus.textContent = '⏳ Holding...';
+                },
+                'up': function() {
+                    if (longStatus.textContent === '⏳ Holding...') {
+                        longStatus.textContent = '👆 Hold';
+                        longProgress.style.width = '0%';
+                        longLog.textContent = 'Released too early';
+                    }
+                }
+            });
+            pointer.long(e, function() {
+                longStatus.textContent = '✅ Success';
+                longLog.textContent = 'Long press detected';
+                setTimeout(function() {
+                    longStatus.textContent = '👆 Hold';
+                    longProgress.style.width = '0%';
+                }, 1000);
+            });
+        }
+        longArea.addEventListener('mousedown', handleLong);
+        longArea.addEventListener('touchstart', handleLong);
+
+        // --- drag 演示 ---
+        const dragSource = document.getElementById('drag-source');
+        const dropTarget = document.getElementById('drop-target');
+        const dragLog = document.getElementById('drag-log');
+
+        function handleDrag(e) {
+            pointer.drag(e, dragSource, {
+                'data': { 'id': 1, 'name': 'Dragged Item' },
+                'start': function() {
+                    dragLog.textContent = 'Dragging...';
+                },
+                'end': function() {
+                    dragLog.textContent = 'Dropped';
+                    setTimeout(function() {
+                        dragLog.textContent = 'Drag the box to the target area';
+                    }, 1000);
+                }
+            });
+        }
+        dragSource.addEventListener('mousedown', handleDrag);
+        dragSource.addEventListener('touchstart', handleDrag);
+
+        dropTarget.addEventListener('dragenter', function() {
+            dragLog.textContent = 'Drag entered target';
+        });
+        dropTarget.addEventListener('dragleave', function() {
+            dragLog.textContent = 'Drag left target';
+        });
+        dropTarget.addEventListener('drop', function(e) {
+            const data = pointer.getDragData();
+            dropTarget.classList.add('has-item');
+            dropTarget.textContent = JSON.stringify(data);
+            setTimeout(function() {
+                dropTarget.classList.remove('has-item');
+                dropTarget.textContent = 'Drop here';
+            }, 2000);
+        });
+
+        // --- 边界检测演示 ---
+        const borderBox = document.getElementById('border-box');
+        const borderArea = document.getElementById('border-area');
+        const borderLog = document.getElementById('border-log');
+        let borderLeft = 60, borderTop = 60;
+
+        function handleBorderMove(e) {
+            pointer.move(e, {
+                'areaObject': borderArea,
+                'object': borderBox,
+                'move': function(e, detail) {
+                    borderLeft += detail.ox;
+                    borderTop += detail.oy;
+                    borderBox.style.left = borderLeft + 'px';
+                    borderBox.style.top = borderTop + 'px';
+                    if (detail.border) {
+                        borderLog.textContent = 'Border: ' + detail.border + ' | Direction: ' + detail.dir;
+                        borderBox.style.background = '#ef4444';
+                    }
+                    else {
+                        borderLog.textContent = 'Inside area | Direction: ' + detail.dir;
+                        borderBox.style.background = '#3b82f6';
+                    }
+                },
+                'borderIn': function(x, y, border) {
+                    borderLog.textContent = 'Entered border: ' + border;
+                },
+                'borderOut': function() {
+                    borderLog.textContent = 'Left border';
+                }
+            });
+        }
+        borderBox.addEventListener('mousedown', handleBorderMove);
+        borderBox.addEventListener('touchstart', handleBorderMove);
+
+        // --- scale 演示 ---
+        const scaleArea = document.getElementById('scale-area');
+        const scaleBox = document.getElementById('scale-box');
+        const scaleLog = document.getElementById('scale-log');
+        let scale = 1;
+        let translateX = 0, translateY = 0;
+
+        function updateScaleBox() {
+            scaleBox.style.transform = 'translate(' + translateX + 'px, ' + translateY + 'px) scale(' + scale + ')';
+        }
+
+        function handleScale(e) {
+            e.preventDefault();
+            pointer.scale(e, function(e, s, cpos) {
+                scale *= s;
+                scale = Math.max(0.5, Math.min(3, scale));
+                translateX += cpos.x;
+                translateY += cpos.y;
+                updateScaleBox();
+                scaleLog.textContent = 'Scale: ' + scale.toFixed(2) + ' | Offset: (' + Math.round(translateX) + ', ' + Math.round(translateY) + ')';
+            });
+        }
+        scaleArea.addEventListener('mousedown', handleScale);
+        scaleArea.addEventListener('touchstart', handleScale);
+        scaleArea.addEventListener('touchmove', handleScale);
+        scaleArea.addEventListener('touchend', handleScale);
+        scaleArea.addEventListener('wheel', handleScale);
+
+        // --- gesture 演示 ---
+        const gestureArea = document.getElementById('gesture-area');
+        const gestureDir = document.getElementById('gesture-dir');
+        const gestureLog = document.getElementById('gesture-log');
+        const dirArrows = {
+            'top': '↑',
+            'bottom': '↓',
+            'left': '←',
+            'right': '→'
+        };
+
+        function handleGesture(e) {
+            e.preventDefault();
+            pointer.gesture(e, function(e, dir) {
+                // --- before handler, return 1 to show gesture indicator ---
+                gestureDir.textContent = dirArrows[dir] || '↕↔';
+                gestureLog.textContent = 'Pulling ' + dir + '...';
+                return 1;
+            }, function(dir) {
+                // --- complete handler ---
+                gestureDir.textContent = '✓ ' + dirArrows[dir];
+                gestureLog.textContent = 'Gesture completed: ' + dir;
+                setTimeout(function() {
+                    gestureDir.textContent = '↕↔';
+                }, 1000);
+            });
+        }
+        gestureArea.addEventListener('mousedown', handleGesture);
+        gestureArea.addEventListener('touchstart', handleGesture);
+        gestureArea.addEventListener('wheel', handleGesture);
+    </script>
+</body>
+</html>
