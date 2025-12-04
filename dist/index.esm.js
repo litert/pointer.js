@@ -645,7 +645,8 @@ function drag(e, el, opt) {
             const rect = el.getBoundingClientRect();
             // --- 创建拖拽指示器 ---
             dragEl = document.createElement('div');
-            dragEl.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;background:rgba(0,0,0,0.1);border:1px dashed #666;pointer-events:none;z-index:999999;`;
+            dragEl.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;background:rgba(255,255,255,.8);border:1px dashed rgba(0,0,0,.8);filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));pointer-events:none;z-index:999999;`;
+            dragEl.style.borderRadius = getComputedStyle(el).borderRadius;
             document.body.appendChild(dragEl);
             otop = rect.top;
             oleft = rect.left;
@@ -861,8 +862,8 @@ function getGestureEl() {
     if (!gestureEl) {
         gestureEl = document.createElement('div');
         gestureEl.className = 'pointer-gesture';
-        gestureEl.style.cssText = `position:fixed;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.3);pointer-events:none;z-index:999999;opacity:0;transition:opacity 0.2s;transform-origin:center;`;
         document.body.appendChild(gestureEl);
+        gestureEl.insertAdjacentHTML('afterend', `<style>.pointer-gesture{position:fixed;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,.9);pointer-events:none;z-index:999999;opacity:0;transition:opacity 0.2s;transform-origin:center;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));}.pointer-gesture-done::before{content:'';background:rgba(255,255,255,.7);border-radius:50%;width:10px;height:10px;}</style>`);
     }
     return gestureEl;
 }
@@ -949,7 +950,7 @@ function gesture(oe, before, handler) {
                 offset = (dir === 'top' || dir === 'left') ? pos - origin : origin - pos;
                 offset = Math.max(0, Math.min(90, offset));
                 g.style.opacity = offset > 0 ? '1' : '0';
-                g.classList.toggle('done', offset >= 90);
+                g.classList.toggle('pointer-gesture-done', offset >= 90);
                 updateGestureStyle(rect, dir, offset);
             },
             end: () => {
@@ -1009,7 +1010,7 @@ function gesture(oe, before, handler) {
             }
             g.style.opacity = '1';
             let offset = Math.min(90, gestureWheel.offset / 1.38);
-            g.classList.toggle('done', offset >= 90);
+            g.classList.toggle('pointer-gesture-done', offset >= 90);
             updateGestureStyle(rect, gestureWheel.dir, offset);
             clearTimeout(gestureWheel.timer);
             if (offset < 90) {

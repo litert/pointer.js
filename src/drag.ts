@@ -63,7 +63,8 @@ export function drag(e: PointerEvent, el: HTMLElement, opt?: types.IDragOptions)
             const rect = el.getBoundingClientRect();
             // --- 创建拖拽指示器 ---
             dragEl = document.createElement('div');
-            dragEl.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;background:rgba(0,0,0,0.1);border:1px dashed #666;pointer-events:none;z-index:999999;`;
+            dragEl.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;background:rgba(255,255,255,.8);border:1px dashed rgba(0,0,0,.8);filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));pointer-events:none;z-index:999999;`;
+            dragEl.style.borderRadius = getComputedStyle(el).borderRadius;
             document.body.appendChild(dragEl);
             otop = rect.top;
             oleft = rect.left;
