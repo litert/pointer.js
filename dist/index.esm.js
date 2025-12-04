@@ -449,8 +449,9 @@ let lastLongTime = 0;
  * --- 绑定长按事件 ---
  * @param e 事件原型
  * @param long 长按回调
+ * @param time 长按时间，默认 300ms
  */
-function long(e, long) {
+function long(e, long, time) {
     const { 'x': tx, 'y': ty, } = getEventPos(e);
     let ox = 0, oy = 0, isLong = false;
     let timer = window.setTimeout(() => {
@@ -459,7 +460,7 @@ function long(e, long) {
             isLong = true;
             Promise.resolve(long(e)).catch((err) => { throw err; });
         }
-    }, 300);
+    }, time ?? 300);
     down(e, {
         move: (ne) => {
             const { x, y } = getEventPos(ne);
@@ -863,7 +864,7 @@ function getGestureEl() {
         gestureEl = document.createElement('div');
         gestureEl.className = 'pointer-gesture';
         document.body.appendChild(gestureEl);
-        gestureEl.insertAdjacentHTML('afterend', `<style>.pointer-gesture{position:fixed;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,.9);pointer-events:none;z-index:999999;opacity:0;transition:opacity 0.2s;transform-origin:center;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));}.pointer-gesture-done::before{content:'';background:rgba(255,255,255,.7);border-radius:50%;width:10px;height:10px;}</style>`);
+        gestureEl.insertAdjacentHTML('afterend', `<style>.pointer-gesture{position:fixed;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,.7);pointer-events:none;z-index:999999;opacity:0;transition:opacity 0.2s;transform-origin:center;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));}.pointer-gesture-done::before{content:'';background:rgba(255,255,255,.9);border-radius:50%;width:10px;height:10px;}</style>`);
     }
     return gestureEl;
 }

@@ -90,8 +90,9 @@ let lastLongTime: number = 0;
  * --- 绑定长按事件 ---
  * @param e 事件原型
  * @param long 长按回调
+ * @param time 长按时间，默认 300ms
  */
-export function long(e: PointerEvent, long: (e: PointerEvent) => void | Promise<void>): void {
+export function long(e: PointerEvent, long: (e: PointerEvent) => void | Promise<void>, time?: number): void {
     const { 'x': tx, 'y': ty, } = utils.getEventPos(e);
     let ox = 0, oy = 0, isLong = false;
     let timer: number | undefined = window.setTimeout(() => {
@@ -100,7 +101,7 @@ export function long(e: PointerEvent, long: (e: PointerEvent) => void | Promise<
             isLong = true;
             Promise.resolve(long(e)).catch((err) => { throw err; });
         }
-    }, 300);
+    }, time ?? 300);
     down(e, {
         move: (ne) => {
             const { x, y } = utils.getEventPos(ne);

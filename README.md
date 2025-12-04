@@ -120,7 +120,7 @@ element.addEventListener('pointerdown', (e) => {
 
 #### `long(e, handler, time?)`
 
-Long press event, default 500ms.
+Long press event, default 300ms.
 
 ```typescript
 element.addEventListener('pointerdown', (e) => {
