@@ -20,13 +20,10 @@ import { move } from './move';
 
 /**
  * --- 绑定拖动改变大小事件 ---
- * @param e mousedown 或 touchstart 的 event
+ * @param e pointerdown 的 event
  * @param opt 选项，width, height 当前对象宽高
  */
-export function resize(e: MouseEvent | TouchEvent, opt: types.IResizeOptions): void {
-    if (utils.hasTouchButMouse(e)) {
-        return;
-    }
+export function resize(e: PointerEvent, opt: types.IResizeOptions): void {
     const minW = opt.minWidth ?? 0, minH = opt.minHeight ?? 0;
     const { x, y } = utils.getEventPos(e);
     let offsetLeft!: number, offsetTop!: number, offsetRight!: number, offsetBottom!: number;

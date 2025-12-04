@@ -15,11 +15,11 @@
     </a>
 </p>
 
-A lightweight pointer event library for handling mouse and touch interactions in browsers. Provides unified APIs for down, move, click, long, drag, resize and more.
+A lightweight pointer event library for handling mouse, touch, and pen interactions in browsers. Provides unified APIs for down, move, click, long, drag, resize and more.
 
 ## Features
 
-- 🖱️ Unified mouse and touch event handling
+- 🖱️ Unified pointer event handling (mouse, touch, pen)
 - 📱 Mobile-friendly with touch support
 - 🎯 Click, double-click, and long-press detection
 - 🔄 Drag and drop with customizable constraints
@@ -54,7 +54,7 @@ npm install @litert/pointer
 ```typescript
 import * as pointer from '@litert/pointer';
 
-element.addEventListener('mousedown', (e) => {
+element.addEventListener('pointerdown', (e) => {
     pointer.move(e, {
         move: (e, detail) => {
             console.log('Moving:', detail.ox, detail.oy);
@@ -68,7 +68,7 @@ element.addEventListener('mousedown', (e) => {
 ```html
 <script src="https://unpkg.com/@litert/pointer/dist/index.umd.min.js"></script>
 <script>
-element.addEventListener('mousedown', function(e) {
+element.addEventListener('pointerdown', function(e) {
     pointer.move(e, {
         move: function(e, detail) {
             console.log('Moving:', detail.ox, detail.oy);
@@ -78,13 +78,11 @@ element.addEventListener('mousedown', function(e) {
 </script>
 ```
 
-## API Reference
-
 ### Core Functions
 
 #### `down(e, options)`
 
-Down and up events, bindto one of touch or mouse.
+Down and up events, bind to pointer events.
 
 ```typescript
 pointer.down(e, {
@@ -98,10 +96,10 @@ pointer.down(e, {
 
 #### `click(e, handler)`
 
-Click takes effect only when the mouse/finger does not move and the time is less than 250ms.
+Click takes effect only when the pointer does not move and the time is less than 250ms.
 
 ```typescript
-element.addEventListener('mousedown', (e) => {
+element.addEventListener('pointerdown', (e) => {
     pointer.click(e, (e, x, y) => {
         console.log('Clicked at:', x, y);
     });
@@ -113,7 +111,7 @@ element.addEventListener('mousedown', (e) => {
 Double-click event, the interval between two clicks is less than 300ms and the position difference is less than 10px.
 
 ```typescript
-element.addEventListener('mousedown', (e) => {
+element.addEventListener('pointerdown', (e) => {
     pointer.dblClick(e, (e, x, y) => {
         console.log('Double clicked at:', x, y);
     });
@@ -125,7 +123,7 @@ element.addEventListener('mousedown', (e) => {
 Long press event, default 500ms.
 
 ```typescript
-element.addEventListener('mousedown', (e) => {
+element.addEventListener('pointerdown', (e) => {
     pointer.long(e, (e) => {
         console.log('Long press detected!');
     }, 500);
@@ -137,7 +135,7 @@ element.addEventListener('mousedown', (e) => {
 Drag event, supports boundary detection and constraints.
 
 ```typescript
-element.addEventListener('mousedown', (e) => {
+element.addEventListener('pointerdown', (e) => {
     pointer.move(e, {
         // --- Constraint area ---
         left: 0,
@@ -179,7 +177,7 @@ element.addEventListener('mousedown', (e) => {
 Resize event.
 
 ```typescript
-element.addEventListener('mousedown', (e) => {
+element.addEventListener('pointerdown', (e) => {
     pointer.resize(e, {
         object: element,
         border: 'rb', // lt, t, tr, r, rb, b, bl, l
@@ -209,7 +207,7 @@ Drag event, supports drag and drop to target elements.
 
 ```typescript
 // --- Set drag source ---
-dragSource.addEventListener('mousedown', (e) => {
+dragSource.addEventListener('pointerdown', (e) => {
     pointer.drag(e, dragSource, {
         data: { id: 1, name: 'item' },
         start: (x, y) => {
@@ -238,6 +236,45 @@ dropTarget.addEventListener('drop', (e) => {
 });
 ```
 
+#### `scale(e, handler)`
+
+Scale/zoom event, supports pinch-to-zoom on touch devices and mouse wheel.
+
+```typescript
+element.addEventListener('pointerdown', (e) => {
+    pointer.scale(e, (e, scale, cpos) => {
+        console.log('Scale:', scale, 'Center:', cpos.x, cpos.y);
+    });
+});
+element.addEventListener('wheel', (e) => {
+    pointer.scale(e, (e, scale, cpos) => {
+        console.log('Scale:', scale, 'Center:', cpos.x, cpos.y);
+    });
+});
+```
+
+#### `gesture(e, before, handler)`
+
+Gesture event for swipe actions (up, down, left, right).
+
+```typescript
+element.addEventListener('pointerdown', (e) => {
+    pointer.gesture(e, (e, dir) => {
+        // Return 1 to show gesture indicator, 0 to ignore, -1 to stop propagation
+        return 1;
+    }, (dir) => {
+        console.log('Gesture completed:', dir);
+    });
+});
+element.addEventListener('wheel', (e) => {
+    pointer.gesture(e, (e, dir) => {
+        return 1;
+    }, (dir) => {
+        console.log('Wheel gesture:', dir);
+    });
+});
+```
+
 ### Utility Functions
 
 #### `setCursor(type?)`
@@ -250,14 +287,13 @@ pointer.setCursor('move');
 pointer.setCursor(); // Cancel
 ```
 
-#### `hasTouchButMouse(e)`
+#### `isTouch(e)`
 
-Determine whether the current event is a mouse event triggered by a touch device.
+Check if the pointer event is from a touch device.
 
 ```typescript
-if (pointer.hasTouchButMouse(e)) {
-    return; // Ignore mouse events on touch devices
-}
+const isTouch = pointer.isTouch(e);
+console.log('Is touch device:', isTouch);
 ```
 
 ## Types
@@ -314,11 +350,13 @@ Then open `dist/test/index.html` in your browser.
 
 ## Browser Support
 
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
-- Mobile browsers (iOS Safari, Chrome for Android)
+- Chrome 55+
+- Firefox 59+
+- Safari 13+
+- Edge 79+
+- Mobile browsers (iOS Safari 13+, Chrome for Android)
+
+Requires Pointer Events API support. For older browsers, consider using a polyfill.
 
 ## License
 

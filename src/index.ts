@@ -32,7 +32,7 @@ export type {
 
 // --- Export Utils ---
 export {
-    hasTouchButMouse,
+    isTouch,
     getEventPos,
     getMoveDir
 } from './utils';
@@ -46,5 +46,5 @@ export { move, isMoving } from './move';
 export { click, dblClick, long, allowEvent } from './click';
 export { resize } from './resize';
 export { drag, getData as getDragData, setData as setDragData } from './drag';
-export { scale } from './scale';
+export { scale, scaleWheel } from './scale';
 export { gesture } from './gesture';

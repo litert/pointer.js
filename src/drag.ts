@@ -44,11 +44,11 @@ function dispatchEvent(el: HTMLElement | null, type: string): void {
 
 /**
  * --- 绑定拖动 ---
- * @param e 鼠标事件
+ * @param e 指针事件
  * @param el 拖动元素
  * @param opt 参数
  */
-export function drag(e: MouseEvent | TouchEvent, el: HTMLElement, opt?: types.IDragOptions): void {
+export function drag(e: PointerEvent, el: HTMLElement, opt?: types.IDragOptions): void {
     bindDragData = opt?.data;
     let otop = 0, oleft = 0;
     /** --- 当前拖拽时鼠标悬停的可放置元素 --- */

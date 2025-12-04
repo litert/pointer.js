@@ -22,46 +22,19 @@
     // ----------------------
     // ------- 工具函数 ------
     // ----------------------
-    /** --- 最后一次 touchstart 的时间戳 --- */
-    let lastTouchTime = 0;
-    // --- 添加 touchstart 事件，既优化了点击行为，也记录了 touch 的时间戳信息 ---
-    if (typeof document !== 'undefined') {
-        document.addEventListener('touchstart', function () {
-            lastTouchTime = Date.now();
-        }, {
-            'passive': true
-        });
-    }
     /**
-     * --- 判断当前的事件是否是含有 touch 的设备触发的，如果当前就是 touch 则直接返回 false（false 代表 OK，true 代表 touch 设备却触发了 mouse 事件） ---
+     * --- 判断当前是否是触摸指针类型 ---
      * @param e 事件对象
      */
-    function hasTouchButMouse(e) {
-        if (e instanceof TouchEvent || e.type === 'touchstart') {
-            return false;
-        }
-        if ((e.pointerType === 'touch') && (e.type === 'contextmenu')) {
-            // --- 当前是 mouse 但是却是 touch 触发的 ---
-            return true;
-        }
-        const now = Date.now();
-        if (now - lastTouchTime < 60_000) {
-            // --- 当前是 mouse 但是 60_000ms 内有 touch start ---
-            return true;
-        }
-        return false;
+    function isTouch(e) {
+        return e.pointerType === 'touch';
     }
     /**
      * --- 从事件中获取坐标 ---
      * @param e 事件对象
-     * @param type 获取类型，client（触摸中） 或 changed（已结束，用于 touchend）
      */
-    function getEventPos(e, type = 'client') {
-        if (e instanceof MouseEvent) {
-            return { 'x': e.clientX, 'y': e.clientY };
-        }
-        const touch = type === 'changed' ? e.changedTouches[0] : e.touches[0];
-        return { 'x': touch.clientX, 'y': touch.clientY };
+    function getEventPos(e) {
+        return { 'x': e.clientX, 'y': e.clientY };
     }
     /**
      * --- 根据坐标差值计算移动方向 ---
@@ -152,15 +125,11 @@
      * limitations under the License.
      */
     /**
-     * --- 绑定按下以及弹起事件，touch 和 mouse 事件只可能成功绑定一个 ---
-     * @param oe MouseEvent | TouchEvent
+     * --- 绑定按下以及弹起事件 ---
+     * @param oe PointerEvent
      * @param opt 回调选项
      */
     function down(oe, opt) {
-        if (hasTouchButMouse(oe)) {
-            return;
-        }
-        const isMouse = oe instanceof MouseEvent;
         /** --- 目标元素 --- */
         const target = oe.target;
         let { 'x': ox, 'y': oy } = getEventPos(oe);
@@ -180,54 +149,32 @@
             if (!isStart) {
                 isStart = true;
                 if (opt.start?.(e) === false) {
-                    if (isMouse) {
-                        window.removeEventListener('mousemove', move);
-                        window.removeEventListener('mouseup', end);
-                    }
-                    else if (target) {
-                        target.removeEventListener('touchmove', move);
-                        target.removeEventListener('touchend', end);
-                        target.removeEventListener('touchcancel', end);
-                    }
+                    window.removeEventListener('pointermove', move);
+                    window.removeEventListener('pointerup', end);
+                    window.removeEventListener('pointercancel', end);
                     return;
                 }
             }
             if (opt.move?.(e, dir) === false) {
-                if (isMouse) {
-                    window.removeEventListener('mousemove', move);
-                    window.removeEventListener('mouseup', end);
-                }
-                else if (target) {
-                    target.removeEventListener('touchmove', move);
-                    target.removeEventListener('touchend', end);
-                    target.removeEventListener('touchcancel', end);
-                }
+                window.removeEventListener('pointermove', move);
+                window.removeEventListener('pointerup', end);
+                window.removeEventListener('pointercancel', end);
             }
         };
         end = function (e) {
-            if (isMouse) {
-                window.removeEventListener('mousemove', move);
-                window.removeEventListener('mouseup', end);
-            }
-            else if (target) {
-                target.removeEventListener('touchmove', move);
-                target.removeEventListener('touchend', end);
-                target.removeEventListener('touchcancel', end);
-            }
+            window.removeEventListener('pointermove', move);
+            window.removeEventListener('pointerup', end);
+            window.removeEventListener('pointercancel', end);
             opt.up?.(e);
             if (isStart) {
                 opt.end?.(e);
             }
         };
-        if (isMouse) {
-            window.addEventListener('mousemove', move, { 'passive': false });
-            window.addEventListener('mouseup', end);
-        }
-        else {
-            target.addEventListener('touchmove', move, { 'passive': false });
-            target.addEventListener('touchend', end);
-            target.addEventListener('touchcancel', end);
-        }
+        // --- 捕获指针以确保即使指针离开元素也能接收事件 ---
+        target?.setPointerCapture?.(oe.pointerId);
+        window.addEventListener('pointermove', move, { 'passive': false });
+        window.addEventListener('pointerup', end);
+        window.addEventListener('pointercancel', end);
         opt.down?.(oe);
     }
 
@@ -320,13 +267,11 @@
     }
     /**
      * --- 绑定拖动事件 ---
-     * @param e mousedown 或 touchstart 的 event
+     * @param e pointerdown 的 event
      * @param opt 回调选项
      */
     function move(e, opt) {
-        if (hasTouchButMouse(e)) {
-            return { 'left': 0, 'top': 0, 'right': 0, 'bottom': 0 };
-        }
+        const target = e.target;
         exports.isMoving = true;
         set(opt.cursor ?? getComputedStyle(e.target).cursor);
         let { x: tx, y: ty } = getEventPos(e);
@@ -354,7 +299,7 @@
         let objectLeft = 0, objectTop = 0, objectWidth = 0, objectHeight = 0;
         let offsetLeft = 0, offsetTop = 0, offsetRight = 0, offsetBottom = 0;
         const moveTimes = [];
-        e.preventDefault();
+        target.style.touchAction = 'none';
         down(e, {
             start: () => {
                 if (opt.start?.(tx, ty) === false) {
@@ -428,6 +373,7 @@
             },
             end: (ne) => {
                 opt.end?.(moveTimes, ne);
+                target.style.touchAction = '';
             }
         });
         return { 'left': left, 'top': top, 'right': right, 'bottom': bottom };
@@ -450,27 +396,23 @@
      */
     /**
      * --- 鼠标/手指没移动时，click 才生效 ---
-     * --- touch 和 mouse 事件只可能成功绑定一个 ---
      * @param e 事件对象
      * @param handler 回调
      */
     function click(e, handler) {
-        if (hasTouchButMouse(e)) {
+        if (e.button > 0) {
             return;
         }
-        if ((e instanceof MouseEvent) && (e.button > 0)) {
-            return;
-        }
-        const x = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
-        const y = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
+        const x = e.clientX;
+        const y = e.clientY;
         const time = Date.now();
         down(e, {
             up: (ne) => {
                 if (Date.now() - time >= 250) {
                     return;
                 }
-                const nx = ne instanceof MouseEvent ? ne.clientX : ne.changedTouches[0].clientX;
-                const ny = ne instanceof MouseEvent ? ne.clientY : ne.changedTouches[0].clientY;
+                const nx = ne.clientX;
+                const ny = ne.clientY;
                 if (nx === x && ny === y) {
                     handler(ne, nx, ny);
                 }
@@ -485,7 +427,6 @@
     };
     /**
      * --- 相当于鼠标/手指两次 click 的效果，并且两次位置差别不太大，dblclick 才生效 ---
-     * --- touch 和 mouse 事件只可能成功绑定一个 ---
      * @param e 事件对象
      * @param handler 回调
      */
@@ -515,14 +456,10 @@
     let lastLongTime = 0;
     /**
      * --- 绑定长按事件 ---
-     * --- touch 和 mouse 事件只可能成功绑定一个 ---
      * @param e 事件原型
      * @param long 长按回调
      */
     function long(e, long) {
-        if (hasTouchButMouse(e)) {
-            return;
-        }
         const { 'x': tx, 'y': ty, } = getEventPos(e);
         let ox = 0, oy = 0, isLong = false;
         let timer = window.setTimeout(() => {
@@ -584,13 +521,10 @@
      */
     /**
      * --- 绑定拖动改变大小事件 ---
-     * @param e mousedown 或 touchstart 的 event
+     * @param e pointerdown 的 event
      * @param opt 选项，width, height 当前对象宽高
      */
     function resize(e, opt) {
-        if (hasTouchButMouse(e)) {
-            return;
-        }
         const minW = opt.minWidth ?? 0, minH = opt.minHeight ?? 0;
         const { x, y } = getEventPos(e);
         let offsetLeft, offsetTop, offsetRight, offsetBottom;
@@ -703,7 +637,7 @@
     }
     /**
      * --- 绑定拖动 ---
-     * @param e 鼠标事件
+     * @param e 指针事件
      * @param el 拖动元素
      * @param opt 参数
      */
@@ -790,60 +724,108 @@
      * limitations under the License.
      */
     /**
-     * --- 绑定缩放，要绑定到 mousedown、touchstart、touchmove、touchend、wheel 上 ---
-     * @param oe 触发的事件
+     * --- 绑定滚轮缩放，需要绑定到 wheel 事件上 ---
+     * @param oe 触发的 WheelEvent 事件
+     * @param handler 回调函数
+     */
+    function scaleWheel(oe, handler) {
+        if (!oe.deltaY) {
+            return;
+        }
+        const delta = Math.abs(oe.deltaY);
+        const zoomFactor = delta * (delta > 50 ? 0.0015 : 0.003);
+        handler(oe, oe.deltaY < 0 ? 1 + zoomFactor : 1 - zoomFactor, { 'x': 0, 'y': 0 });
+    }
+    /**
+     * --- 绑定指针缩放/拖动，只需绑定到 pointerdown 事件上，其他事件自动绑定并在结束后自动移除 ---
+     * @param oe 触发的 PointerEvent 事件
      * @param handler 回调函数
      */
     function scale(oe, handler) {
-        const el = oe.currentTarget;
-        if (!el) {
+        const target = oe.target;
+        if (!target) {
             return;
         }
-        if (oe instanceof TouchEvent) {
-            // --- 指头 ---
-            if (oe.type === 'touchend') {
-                if (!oe.touches.length) {
-                    el.removeAttribute('data-scale');
+        // --- 初始化状态 ---
+        const state = {
+            'pointers': new Map(),
+            'lastDis': 0,
+            'lastPos': { 'x': 0, 'y': 0 },
+            'lastSinglePos': { 'x': oe.clientX, 'y': oe.clientY }
+        };
+        // --- 记录第一个指针 ---
+        state.pointers.set(oe.pointerId, { 'x': oe.clientX, 'y': oe.clientY });
+        let down = undefined;
+        const move = (e) => {
+            if (!state.pointers.has(e.pointerId)) {
+                // --- 新指针加入 ---
+                state.pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
+                if (state.pointers.size === 2) {
+                    // --- 双指开始，计算初始距离和中心点 ---
+                    const pts = Array.from(state.pointers.values());
+                    state.lastDis = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+                    state.lastPos = { 'x': (pts[0].x + pts[1].x) / 2, 'y': (pts[0].y + pts[1].y) / 2 };
                 }
                 return;
             }
-            const t0 = oe.touches[0], t1 = oe.touches[1];
-            const ex = [t0.clientX, t1?.clientX ?? -1e3];
-            const ey = [t0.clientY, t1?.clientY ?? -1e3];
-            const hasTwoFingers = ex[1] !== -1e3;
-            const ndis = hasTwoFingers ? Math.hypot(ex[0] - ex[1], ey[0] - ey[1]) : 0;
-            const epos = hasTwoFingers
-                ? { 'x': (ex[0] + ex[1]) / 2, 'y': (ey[0] + ey[1]) / 2 }
-                : { 'x': ex[0], 'y': ey[0] };
-            if (el.dataset.scale === undefined) {
-                el.dataset.scale = JSON.stringify({ 'dis': ndis, 'x': ex, 'y': ey, 'pos': epos });
-                return;
+            // --- 更新指针位置 ---
+            state.pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
+            if (state.pointers.size >= 2) {
+                // --- 双指缩放 ---
+                const pts = Array.from(state.pointers.values());
+                const newDis = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+                const newPos = { 'x': (pts[0].x + pts[1].x) / 2, 'y': (pts[0].y + pts[1].y) / 2 };
+                const scaleVal = state.lastDis > 0 ? newDis / state.lastDis : 1;
+                const dx = newPos.x - state.lastPos.x;
+                const dy = newPos.y - state.lastPos.y;
+                handler(e, scaleVal, { 'x': dx, 'y': dy });
+                state.lastDis = newDis;
+                state.lastPos = newPos;
             }
-            const d = JSON.parse(el.dataset.scale);
-            const notchange = hasTwoFingers !== (d.x[1] !== -1e3);
-            const scale = (ndis > 0 && d.dis > 0) ? ndis / d.dis : 1;
-            handler(oe, scale, {
-                'x': notchange ? 0 : epos.x - d.pos.x,
-                'y': notchange ? 0 : epos.y - d.pos.y
-            });
-            el.dataset.scale = JSON.stringify({ 'dis': ndis, 'x': ex, 'y': ey, 'pos': epos });
-            return;
-        }
-        if (oe instanceof WheelEvent) {
-            if (!oe.deltaY) {
-                return;
+            else {
+                // --- 单指拖动 ---
+                const dx = e.clientX - state.lastSinglePos.x;
+                const dy = e.clientY - state.lastSinglePos.y;
+                if (dx !== 0 || dy !== 0) {
+                    handler(e, 1, { 'x': dx, 'y': dy });
+                    state.lastSinglePos = { 'x': e.clientX, 'y': e.clientY };
+                }
             }
-            const delta = Math.abs(oe.deltaY);
-            const zoomFactor = delta * (delta > 50 ? 0.0015 : 0.003);
-            handler(oe, oe.deltaY < 0 ? 1 + zoomFactor : 1 - zoomFactor, { 'x': 0, 'y': 0 });
-            return;
-        }
-        // --- 纯鼠标拖动 ---
-        move(oe, {
-            'move': (e, opt) => {
-                handler(oe, 1, { 'x': opt.ox, 'y': opt.oy });
+        };
+        const up = (e) => {
+            state.pointers.delete(e.pointerId);
+            if (state.pointers.size === 1) {
+                // --- 恢复为单指，重置状态 ---
+                state.lastDis = 0;
+                const pts = Array.from(state.pointers.values());
+                state.lastSinglePos = { 'x': pts[0].x, 'y': pts[0].y };
             }
-        });
+            if (state.pointers.size === 0) {
+                // --- 所有指针都释放，移除事件监听 ---
+                window.removeEventListener('pointermove', move);
+                window.removeEventListener('pointerup', up);
+                window.removeEventListener('pointercancel', up);
+                window.removeEventListener('pointerdown', down);
+            }
+        };
+        down = (e) => {
+            // --- 捕获新指针 ---
+            target.setPointerCapture?.(e.pointerId);
+            state.pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
+            if (state.pointers.size === 2) {
+                // --- 双指开始，计算初始距离和中心点 ---
+                const pts = Array.from(state.pointers.values());
+                state.lastDis = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+                state.lastPos = { 'x': (pts[0].x + pts[1].x) / 2, 'y': (pts[0].y + pts[1].y) / 2 };
+            }
+        };
+        // --- 捕获当前指针 ---
+        target.setPointerCapture?.(oe.pointerId);
+        // --- 绑定事件 ---
+        window.addEventListener('pointermove', move, { 'passive': false });
+        window.addEventListener('pointerup', up);
+        window.addEventListener('pointercancel', up);
+        window.addEventListener('pointerdown', down);
     }
 
     /**
@@ -928,8 +910,8 @@
         }
         const rect = el.getBoundingClientRect();
         const g = getGestureEl();
-        if ((oe instanceof MouseEvent || oe instanceof TouchEvent) && !(oe instanceof WheelEvent)) {
-            // --- touch / mouse 触发的，dir 会和鼠标的 dir 相反，向下拖动是上方加载 ---
+        if (oe instanceof PointerEvent) {
+            // --- pointer 触发的，dir 会和鼠标的 dir 相反，向下拖动是上方加载 ---
             let offset = 0, origin = 0, first = 1;
             let dir = 'top';
             down(oe, {
@@ -1059,11 +1041,12 @@
     exports.getDragData = getData;
     exports.getEventPos = getEventPos;
     exports.getMoveDir = getMoveDir;
-    exports.hasTouchButMouse = hasTouchButMouse;
+    exports.isTouch = isTouch;
     exports.long = long;
     exports.move = move;
     exports.resize = resize;
     exports.scale = scale;
+    exports.scaleWheel = scaleWheel;
     exports.setCursor = set;
     exports.setDragData = setData;
 

@@ -18,22 +18,18 @@ import * as types from './types';
 import * as utils from './utils';
 
 /**
- * --- 绑定按下以及弹起事件，touch 和 mouse 事件只可能成功绑定一个 ---
- * @param oe MouseEvent | TouchEvent
+ * --- 绑定按下以及弹起事件 ---
+ * @param oe PointerEvent
  * @param opt 回调选项
  */
-export function down<T extends MouseEvent | TouchEvent>(oe: T, opt: types.IDownOptions<T>): void {
-    if (utils.hasTouchButMouse(oe)) {
-        return;
-    }
-    const isMouse = oe instanceof MouseEvent;
+export function down(oe: PointerEvent, opt: types.IDownOptions): void {
     /** --- 目标元素 --- */
     const target = oe.target as HTMLElement;
     let { 'x': ox, 'y': oy } = utils.getEventPos(oe);
     let isStart = false;
 
-    let end: (<TU extends T>(e: TU) => void) | undefined = undefined;
-    const move = function<TU extends T>(e: TU): void {
+    let end: ((e: PointerEvent) => void) | undefined = undefined;
+    const move = function(e: PointerEvent): void {
         if ((!e.target || !document.body.contains(e.target as HTMLElement)) && e.cancelable) {
             e.preventDefault();
         }
@@ -47,55 +43,33 @@ export function down<T extends MouseEvent | TouchEvent>(oe: T, opt: types.IDownO
         if (!isStart) {
             isStart = true;
             if (opt.start?.(e) === false) {
-                if (isMouse) {
-                    window.removeEventListener('mousemove', move as EventListener);
-                    window.removeEventListener('mouseup', end as EventListener);
-                }
-                else if (target) {
-                    target.removeEventListener('touchmove', move as EventListener);
-                    target.removeEventListener('touchend', end as EventListener);
-                    target.removeEventListener('touchcancel', end as EventListener);
-                }
+                window.removeEventListener('pointermove', move);
+                window.removeEventListener('pointerup', end as EventListener);
+                window.removeEventListener('pointercancel', end as EventListener);
                 return;
             }
         }
         if (opt.move?.(e, dir) === false) {
-            if (isMouse) {
-                window.removeEventListener('mousemove', move as EventListener);
-                window.removeEventListener('mouseup', end as EventListener);
-            }
-            else if (target) {
-                target.removeEventListener('touchmove', move as EventListener);
-                target.removeEventListener('touchend', end as EventListener);
-                target.removeEventListener('touchcancel', end as EventListener);
-            }
+            window.removeEventListener('pointermove', move);
+            window.removeEventListener('pointerup', end as EventListener);
+            window.removeEventListener('pointercancel', end as EventListener);
         }
     };
 
-    end = function<TU extends T>(e: TU): void {
-        if (isMouse) {
-            window.removeEventListener('mousemove', move as EventListener);
-            window.removeEventListener('mouseup', end as EventListener);
-        }
-        else if (target) {
-            target.removeEventListener('touchmove', move as EventListener);
-            target.removeEventListener('touchend', end as EventListener);
-            target.removeEventListener('touchcancel', end as EventListener);
-        }
+    end = function(e: PointerEvent): void {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', end as EventListener);
+        window.removeEventListener('pointercancel', end as EventListener);
         opt.up?.(e) as any;
         if (isStart) {
             opt.end?.(e) as any;
         }
     };
 
-    if (isMouse) {
-        window.addEventListener('mousemove', move as (e: MouseEvent) => void, { 'passive': false });
-        window.addEventListener('mouseup', end as (e: MouseEvent) => void);
-    }
-    else {
-        target.addEventListener('touchmove', move as (e: TouchEvent) => void, { 'passive': false });
-        target.addEventListener('touchend', end as (e: TouchEvent) => void);
-        target.addEventListener('touchcancel', end as (e: TouchEvent) => void);
-    }
+    // --- 捕获指针以确保即使指针离开元素也能接收事件 ---
+    target?.setPointerCapture?.(oe.pointerId);
+    window.addEventListener('pointermove', move, { 'passive': false });
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
     opt.down?.(oe);
 }

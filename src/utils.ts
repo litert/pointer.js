@@ -20,49 +20,20 @@ import * as types from './types';
 // ------- 工具函数 ------
 // ----------------------
 
-/** --- 最后一次 touchstart 的时间戳 --- */
-let lastTouchTime: number = 0;
-
-// --- 添加 touchstart 事件，既优化了点击行为，也记录了 touch 的时间戳信息 ---
-if (typeof document !== 'undefined') {
-    document.addEventListener('touchstart', function() {
-        lastTouchTime = Date.now();
-    }, {
-        'passive': true
-    });
-}
-
 /**
- * --- 判断当前的事件是否是含有 touch 的设备触发的，如果当前就是 touch 则直接返回 false（false 代表 OK，true 代表 touch 设备却触发了 mouse 事件） ---
+ * --- 判断当前是否是触摸指针类型 ---
  * @param e 事件对象
  */
-export function hasTouchButMouse(e: MouseEvent | TouchEvent | PointerEvent): boolean {
-    if (e instanceof TouchEvent || e.type === 'touchstart') {
-        return false;
-    }
-    if (((e as any).pointerType === 'touch') && (e.type === 'contextmenu')) {
-        // --- 当前是 mouse 但是却是 touch 触发的 ---
-        return true;
-    }
-    const now = Date.now();
-    if (now - lastTouchTime < 60_000) {
-        // --- 当前是 mouse 但是 60_000ms 内有 touch start ---
-        return true;
-    }
-    return false;
+export function isTouch(e: PointerEvent): boolean {
+    return e.pointerType === 'touch';
 }
 
 /**
  * --- 从事件中获取坐标 ---
  * @param e 事件对象
- * @param type 获取类型，client（触摸中） 或 changed（已结束，用于 touchend）
  */
-export function getEventPos(e: MouseEvent | TouchEvent, type: 'client' | 'changed' = 'client'): { 'x': number; 'y': number; } {
-    if (e instanceof MouseEvent) {
-        return { 'x': e.clientX, 'y': e.clientY };
-    }
-    const touch = type === 'changed' ? e.changedTouches[0] : e.touches[0];
-    return { 'x': touch.clientX, 'y': touch.clientY };
+export function getEventPos(e: PointerEvent): { 'x': number; 'y': number; } {
+    return { 'x': e.clientX, 'y': e.clientY };
 }
 
 /**

@@ -25,12 +25,12 @@ export type TDirection = 'top' | 'right' | 'bottom' | 'left';
 export type TBorder = 'lt' | 't' | 'tr' | 'r' | 'rb' | 'b' | 'bl' | 'l' | '';
 
 /** --- down 选项 --- */
-export interface IDownOptions<T extends MouseEvent | TouchEvent> {
-    'down'?: (e: T) => void;
-    'start'?: (e: T) => any;
-    'move'?: (e: T, dir: TDirection) => any;
-    'up'?: (e: T) => void | Promise<void>;
-    'end'?: (e: T) => void | Promise<void>;
+export interface IDownOptions {
+    'down'?: (e: PointerEvent) => void;
+    'start'?: (e: PointerEvent) => any;
+    'move'?: (e: PointerEvent, dir: TDirection) => any;
+    'up'?: (e: PointerEvent) => void | Promise<void>;
+    'end'?: (e: PointerEvent) => void | Promise<void>;
 }
 
 /** --- move 回调参数 --- */
@@ -98,15 +98,15 @@ export interface IMoveOptions {
     /** --- 开始回调 --- */
     'start'?: (x: number, y: number) => any;
     /** --- 移动回调 --- */
-    'move'?: (e: MouseEvent | TouchEvent, detail: IMoveDetail) => void;
+    'move'?: (e: PointerEvent, detail: IMoveDetail) => void;
     /** --- 进入边界回调 --- */
-    'borderIn'?: (x: number, y: number, border: TBorder, e: MouseEvent | TouchEvent) => void;
+    'borderIn'?: (x: number, y: number, border: TBorder, e: PointerEvent) => void;
     /** --- 离开边界回调 --- */
     'borderOut'?: () => void;
     /** --- 鼠标抬起回调 --- */
-    'up'?: (moveTimes: IMoveTime[], e: MouseEvent | TouchEvent) => void;
+    'up'?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
     /** --- 结束回调 --- */
-    'end'?: (moveTimes: IMoveTime[], e: MouseEvent | TouchEvent) => void;
+    'end'?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
 }
 
 /** --- move 返回值 --- */
@@ -144,7 +144,7 @@ export interface IResizeOptions {
     /** --- 移动回调 --- */
     'move'?: (left: number, top: number, width: number, height: number, x: number, y: number, border: TBorder) => void;
     /** --- 结束回调 --- */
-    'end'?: (moveTimes: IMoveTime[], e: MouseEvent | TouchEvent) => void;
+    'end'?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
 }
 
 /** --- drag 选项 --- */
@@ -154,16 +154,16 @@ export interface IDragOptions {
     /** --- 开始回调 --- */
     'start'?: (x: number, y: number) => any;
     /** --- 移动回调 --- */
-    'move'?: (e: MouseEvent | TouchEvent, detail: IMoveDetail) => void;
+    'move'?: (e: PointerEvent, detail: IMoveDetail) => void;
     /** --- 结束回调 --- */
-    'end'?: (moveTimes: IMoveTime[], e: MouseEvent | TouchEvent) => void;
+    'end'?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
 }
 
 /** --- scale 回调函数类型 --- */
-export type TScaleHandler = (e: MouseEvent | TouchEvent | WheelEvent, scale: number, cpos: { 'x': number; 'y': number; }) => void | Promise<void>;
+export type TScaleHandler = (e: PointerEvent | WheelEvent, scale: number, cpos: { 'x': number; 'y': number; }) => void | Promise<void>;
 
 /** --- gesture before 回调函数类型，返回 1 显示 gesture，0 不处理，-1 stopPropagation --- */
-export type TGestureBeforeHandler = (e: MouseEvent | TouchEvent | WheelEvent, dir: TDirection) => number;
+export type TGestureBeforeHandler = (e: PointerEvent | WheelEvent, dir: TDirection) => number;
 
 /** --- gesture handler 回调函数类型 --- */
 export type TGestureHandler = (dir: TDirection) => void | Promise<void>;

@@ -15,61 +15,132 @@
  */
 
 import * as types from './types';
-import { move } from './move';
+
+/** --- 多指针追踪数据 --- */
+interface IPointerData {
+    'x': number;
+    'y': number;
+}
+
+/** --- 缩放状态 --- */
+interface IScaleState {
+    /** --- 指针列表 --- */
+    'pointers': Map<number, IPointerData>;
+    /** --- 上次双指距离 --- */
+    'lastDis': number;
+    /** --- 上次双指中心点 --- */
+    'lastPos': { 'x': number; 'y': number; };
+    /** --- 上次单指位置 --- */
+    'lastSinglePos': { 'x': number; 'y': number; };
+}
 
 /**
- * --- 绑定缩放，要绑定到 mousedown、touchstart、touchmove、touchend、wheel 上 ---
- * @param oe 触发的事件
+ * --- 绑定滚轮缩放，需要绑定到 wheel 事件上 ---
+ * @param oe 触发的 WheelEvent 事件
  * @param handler 回调函数
  */
-export function scale(oe: MouseEvent | TouchEvent | WheelEvent, handler: types.TScaleHandler): void {
-    const el = oe.currentTarget as HTMLElement;
-    if (!el) {
+export function scaleWheel(oe: WheelEvent, handler: types.TScaleHandler): void {
+    if (!oe.deltaY) {
         return;
     }
-    if (oe instanceof TouchEvent) {
-        // --- 指头 ---
-        if (oe.type === 'touchend') {
-            if (!oe.touches.length) {
-                el.removeAttribute('data-scale');
+    const delta = Math.abs(oe.deltaY);
+    const zoomFactor = delta * (delta > 50 ? 0.0015 : 0.003);
+    handler(oe, oe.deltaY < 0 ? 1 + zoomFactor : 1 - zoomFactor, { 'x': 0, 'y': 0 }) as any;
+}
+
+/**
+ * --- 绑定指针缩放/拖动，只需绑定到 pointerdown 事件上，其他事件自动绑定并在结束后自动移除 ---
+ * @param oe 触发的 PointerEvent 事件
+ * @param handler 回调函数
+ */
+export function scale(oe: PointerEvent, handler: types.TScaleHandler): void {
+    const target = oe.target as HTMLElement;
+    if (!target) {
+        return;
+    }
+    // --- 初始化状态 ---
+    const state: IScaleState = {
+        'pointers': new Map(),
+        'lastDis': 0,
+        'lastPos': { 'x': 0, 'y': 0 },
+        'lastSinglePos': { 'x': oe.clientX, 'y': oe.clientY }
+    };
+    // --- 记录第一个指针 ---
+    state.pointers.set(oe.pointerId, { 'x': oe.clientX, 'y': oe.clientY });
+
+    let down: ((e: PointerEvent) => void) | undefined = undefined;
+
+    const move = (e: PointerEvent): void => {
+        if (!state.pointers.has(e.pointerId)) {
+            // --- 新指针加入 ---
+            state.pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
+            if (state.pointers.size === 2) {
+                // --- 双指开始，计算初始距离和中心点 ---
+                const pts = Array.from(state.pointers.values());
+                state.lastDis = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+                state.lastPos = { 'x': (pts[0].x + pts[1].x) / 2, 'y': (pts[0].y + pts[1].y) / 2 };
             }
             return;
         }
-        const t0 = oe.touches[0], t1 = oe.touches[1];
-        const ex = [t0.clientX, t1?.clientX ?? -1000];
-        const ey = [t0.clientY, t1?.clientY ?? -1000];
-        const hasTwoFingers = ex[1] !== -1000;
-        const ndis = hasTwoFingers ? Math.hypot(ex[0] - ex[1], ey[0] - ey[1]) : 0;
-        const epos = hasTwoFingers
-            ? { 'x': (ex[0] + ex[1]) / 2, 'y': (ey[0] + ey[1]) / 2 }
-            : { 'x': ex[0], 'y': ey[0] };
-        if (el.dataset.scale === undefined) {
-            el.dataset.scale = JSON.stringify({ 'dis': ndis, 'x': ex, 'y': ey, 'pos': epos });
-            return;
+        // --- 更新指针位置 ---
+        state.pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
+        if (state.pointers.size >= 2) {
+            // --- 双指缩放 ---
+            const pts = Array.from(state.pointers.values());
+            const newDis = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+            const newPos = { 'x': (pts[0].x + pts[1].x) / 2, 'y': (pts[0].y + pts[1].y) / 2 };
+            const scaleVal = state.lastDis > 0 ? newDis / state.lastDis : 1;
+            const dx = newPos.x - state.lastPos.x;
+            const dy = newPos.y - state.lastPos.y;
+            handler(e, scaleVal, { 'x': dx, 'y': dy }) as any;
+            state.lastDis = newDis;
+            state.lastPos = newPos;
         }
-        const d = JSON.parse(el.dataset.scale);
-        const notchange = hasTwoFingers !== (d.x[1] !== -1000);
-        const scale = (ndis > 0 && d.dis > 0) ? ndis / d.dis : 1;
-        handler(oe, scale, {
-            'x': notchange ? 0 : epos.x - d.pos.x,
-            'y': notchange ? 0 : epos.y - d.pos.y
-        }) as any;
-        el.dataset.scale = JSON.stringify({ 'dis': ndis, 'x': ex, 'y': ey, 'pos': epos });
-        return;
-    }
-    if (oe instanceof WheelEvent) {
-        if (!oe.deltaY) {
-            return;
+        else {
+            // --- 单指拖动 ---
+            const dx = e.clientX - state.lastSinglePos.x;
+            const dy = e.clientY - state.lastSinglePos.y;
+            if (dx !== 0 || dy !== 0) {
+                handler(e, 1, { 'x': dx, 'y': dy }) as any;
+                state.lastSinglePos = { 'x': e.clientX, 'y': e.clientY };
+            }
         }
-        const delta = Math.abs(oe.deltaY);
-        const zoomFactor = delta * (delta > 50 ? 0.0015 : 0.003);
-        handler(oe, oe.deltaY < 0 ? 1 + zoomFactor : 1 - zoomFactor, { 'x': 0, 'y': 0 }) as any;
-        return;
-    }
-    // --- 纯鼠标拖动 ---
-    move(oe, {
-        'move': (e, opt) => {
-            handler(oe, 1, { 'x': opt.ox, 'y': opt.oy }) as any;
+    };
+
+    const up = (e: PointerEvent): void => {
+        state.pointers.delete(e.pointerId);
+        if (state.pointers.size === 1) {
+            // --- 恢复为单指，重置状态 ---
+            state.lastDis = 0;
+            const pts = Array.from(state.pointers.values());
+            state.lastSinglePos = { 'x': pts[0].x, 'y': pts[0].y };
         }
-    });
+        if (state.pointers.size === 0) {
+            // --- 所有指针都释放，移除事件监听 ---
+            window.removeEventListener('pointermove', move);
+            window.removeEventListener('pointerup', up);
+            window.removeEventListener('pointercancel', up);
+            window.removeEventListener('pointerdown', down as EventListener);
+        }
+    };
+
+    down = (e: PointerEvent): void => {
+        // --- 捕获新指针 ---
+        target.setPointerCapture?.(e.pointerId);
+        state.pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
+        if (state.pointers.size === 2) {
+            // --- 双指开始，计算初始距离和中心点 ---
+            const pts = Array.from(state.pointers.values());
+            state.lastDis = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+            state.lastPos = { 'x': (pts[0].x + pts[1].x) / 2, 'y': (pts[0].y + pts[1].y) / 2 };
+        }
+    };
+
+    // --- 捕获当前指针 ---
+    target.setPointerCapture?.(oe.pointerId);
+    // --- 绑定事件 ---
+    window.addEventListener('pointermove', move, { 'passive': false });
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    window.addEventListener('pointerdown', down);
 }

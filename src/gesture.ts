@@ -90,7 +90,7 @@ function sleep(ms: number): Promise<void> {
  * @param handler 执行完毕的话才会回调
  */
 export function gesture(
-    oe: MouseEvent | TouchEvent | WheelEvent,
+    oe: PointerEvent | WheelEvent,
     before: types.TGestureBeforeHandler,
     handler?: types.TGestureHandler
 ): void {
@@ -100,8 +100,8 @@ export function gesture(
     }
     const rect = el.getBoundingClientRect();
     const g = getGestureEl();
-    if ((oe instanceof MouseEvent || oe instanceof TouchEvent) && !(oe instanceof WheelEvent)) {
-        // --- touch / mouse 触发的，dir 会和鼠标的 dir 相反，向下拖动是上方加载 ---
+    if (oe instanceof PointerEvent) {
+        // --- pointer 触发的，dir 会和鼠标的 dir 相反，向下拖动是上方加载 ---
         let offset = 0, origin = 0, first = 1;
         let dir: types.TDirection = 'top';
         down(oe, {

@@ -112,13 +112,10 @@ function calcBorderType(
 
 /**
  * --- 绑定拖动事件 ---
- * @param e mousedown 或 touchstart 的 event
+ * @param e pointerdown 的 event
  * @param opt 回调选项
  */
-export function move(e: MouseEvent | TouchEvent, opt: types.IMoveOptions): types.IMoveResult {
-    if (utils.hasTouchButMouse(e)) {
-        return { 'left': 0, 'top': 0, 'right': 0, 'bottom': 0 };
-    }
+export function move(e: PointerEvent, opt: types.IMoveOptions): types.IMoveResult {
     isMoving = true;
     cursor.set(opt.cursor ?? getComputedStyle(e.target as Element).cursor);
     let { x: tx, y: ty } = utils.getEventPos(e);
@@ -149,7 +146,6 @@ export function move(e: MouseEvent | TouchEvent, opt: types.IMoveOptions): types
     let offsetLeft = 0, offsetTop = 0, offsetRight = 0, offsetBottom = 0;
     const moveTimes: types.IMoveTime[] = [];
 
-    e.preventDefault();
     down(e, {
         start: () => {
             if (opt.start?.(tx, ty) === false) {

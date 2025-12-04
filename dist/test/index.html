@@ -68,6 +68,7 @@
             font-weight: 600;
             text-align: center;
             box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            touch-action: none;
         }
         .resizable {
             width: 120px;
@@ -84,6 +85,7 @@
             font-size: 12px;
             font-weight: 600;
             box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+            touch-action: none;
         }
         .resize-handle {
             width: 14px;
@@ -172,6 +174,7 @@
             font-weight: 600;
             font-size: 12px;
             box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+            touch-action: none;
         }
         .drop-target {
             flex: 1;
@@ -276,6 +279,20 @@
         .gesture-area .hint {
             font-size: 12px;
             color: #94a3b8;
+        }
+        .event-test-element {
+            width: 100px;
+            height: 100px;
+            background: #ec4899;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 600;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+            touch-action: none;
         }
     </style>
 </head>
@@ -401,6 +418,17 @@
                 </div>
                 <div class="log" id="gesture-log">Swipe up/down/left/right</div>
             </div>
+
+            <!-- event 测试 -->
+            <div class="demo-card">
+                <h2>Event Testing</h2>
+                <div class="demo-area" id="event-area">
+                    <div class="event-test-element" id="event-element">
+                        Test Element
+                    </div>
+                </div>
+                <div class="log" id="event-log">Event log will appear here</div>
+            </div>
         </div>
     </div>
 
@@ -434,8 +462,7 @@
                 }
             });
         }
-        dragBox.addEventListener('mousedown', handleDragMove);
-        dragBox.addEventListener('touchstart', handleDragMove);
+        dragBox.addEventListener('pointerdown', handleDragMove);
 
         // --- resize 演示 ---
         const resizeBox = document.getElementById('resize-box');
@@ -462,8 +489,7 @@
                     }
                 });
             }
-            handle.addEventListener('mousedown', handleResize);
-            handle.addEventListener('touchstart', handleResize);
+            handle.addEventListener('pointerdown', handleResize);
         });
 
         // --- click / dblClick 演示 ---
@@ -484,8 +510,7 @@
                 clickLog.textContent = 'Click +1 at (' + Math.round(x) + ', ' + Math.round(y) + ')';
             });
         }
-        clickArea.addEventListener('mousedown', handleClick);
-        clickArea.addEventListener('touchstart', handleClick);
+        clickArea.addEventListener('pointerdown', handleClick);
 
         // --- long 演示 ---
         const longArea = document.getElementById('long-area');
@@ -516,8 +541,7 @@
                 }, 1000);
             });
         }
-        longArea.addEventListener('mousedown', handleLong);
-        longArea.addEventListener('touchstart', handleLong);
+        longArea.addEventListener('pointerdown', handleLong);
 
         // --- drag 演示 ---
         const dragSource = document.getElementById('drag-source');
@@ -538,8 +562,7 @@
                 }
             });
         }
-        dragSource.addEventListener('mousedown', handleDrag);
-        dragSource.addEventListener('touchstart', handleDrag);
+        dragSource.addEventListener('pointerdown', handleDrag);
 
         dropTarget.addEventListener('dragenter', function() {
             dragLog.textContent = 'Drag entered target';
@@ -589,8 +612,7 @@
                 }
             });
         }
-        borderBox.addEventListener('mousedown', handleBorderMove);
-        borderBox.addEventListener('touchstart', handleBorderMove);
+        borderBox.addEventListener('pointerdown', handleBorderMove);
 
         // --- scale 演示 ---
         const scaleArea = document.getElementById('scale-area');
@@ -604,7 +626,6 @@
         }
 
         function handleScale(e) {
-            e.preventDefault();
             pointer.scale(e, function(e, s, cpos) {
                 scale *= s;
                 scale = Math.max(0.5, Math.min(3, scale));
@@ -614,11 +635,7 @@
                 scaleLog.textContent = 'Scale: ' + scale.toFixed(2) + ' | Offset: (' + Math.round(translateX) + ', ' + Math.round(translateY) + ')';
             });
         }
-        scaleArea.addEventListener('mousedown', handleScale);
-        scaleArea.addEventListener('touchstart', handleScale);
-        scaleArea.addEventListener('touchmove', handleScale);
-        scaleArea.addEventListener('touchend', handleScale);
-        scaleArea.addEventListener('wheel', handleScale);
+        scaleArea.addEventListener('pointerdown', handleScale);
 
         // --- gesture 演示 ---
         const gestureArea = document.getElementById('gesture-area');
@@ -632,7 +649,6 @@
         };
 
         function handleGesture(e) {
-            e.preventDefault();
             pointer.gesture(e, function(e, dir) {
                 // --- before handler, return 1 to show gesture indicator ---
                 gestureDir.textContent = dirArrows[dir] || '↕↔';
@@ -647,9 +663,26 @@
                 }, 1000);
             });
         }
-        gestureArea.addEventListener('mousedown', handleGesture);
-        gestureArea.addEventListener('touchstart', handleGesture);
+        gestureArea.addEventListener('pointerdown', handleGesture);
         gestureArea.addEventListener('wheel', handleGesture);
+
+        // --- event 测试 ---
+        const eventElement = document.getElementById('event-element');
+        const eventLog = document.getElementById('event-log');
+
+        const events = [
+            'mousedown', 'mouseup', 'click', 'dblclick', 'mousemove', 'mouseover', 'mouseout', 'mouseenter', 'mouseleave', 'contextmenu', 'wheel',
+            'touchstart', 'touchend', 'touchmove', 'touchcancel',
+            'pointerdown', 'pointerup', 'pointermove', 'pointercancel', 'pointerenter', 'pointerleave', 'pointerover', 'pointerout', 'gotpointercapture', 'lostpointercapture'
+        ];
+
+        function logEvent(e) {
+            eventLog.innerHTML = e.type + '<br>' + eventLog.innerHTML;
+        }
+
+        events.forEach(function(eventType) {
+            eventElement.addEventListener(eventType, logEvent);
+        });
     </script>
 </body>
 </html>

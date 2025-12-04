@@ -18,30 +18,26 @@ import { down } from './down';
 
 /**
  * --- 鼠标/手指没移动时，click 才生效 ---
- * --- touch 和 mouse 事件只可能成功绑定一个 ---
  * @param e 事件对象
  * @param handler 回调
  */
 export function click(
-    e: MouseEvent | TouchEvent,
-    handler: (e: MouseEvent | TouchEvent, x: number, y: number) => void | Promise<void>
+    e: PointerEvent,
+    handler: (e: PointerEvent, x: number, y: number) => void | Promise<void>
 ): void {
-    if (utils.hasTouchButMouse(e)) {
+    if (e.button > 0) {
         return;
     }
-    if ((e instanceof MouseEvent) && (e.button > 0)) {
-        return;
-    }
-    const x = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
-    const y = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
+    const x = e.clientX;
+    const y = e.clientY;
     const time = Date.now();
     down(e, {
         up: (ne) => {
             if (Date.now() - time >= 250) {
                 return;
             }
-            const nx = ne instanceof MouseEvent ? ne.clientX : ne.changedTouches[0].clientX;
-            const ny = ne instanceof MouseEvent ? ne.clientY : ne.changedTouches[0].clientY;
+            const nx = ne.clientX;
+            const ny = ne.clientY;
             if (nx === x && ny === y) {
                 handler(ne, nx, ny) as any;
             }
@@ -58,13 +54,12 @@ const lastDblClickData = {
 
 /**
  * --- 相当于鼠标/手指两次 click 的效果，并且两次位置差别不太大，dblclick 才生效 ---
- * --- touch 和 mouse 事件只可能成功绑定一个 ---
  * @param e 事件对象
  * @param handler 回调
  */
 export function dblClick(
-    e: MouseEvent | TouchEvent,
-    handler: (e: MouseEvent | TouchEvent, x: number, y: number) => void | Promise<void>
+    e: PointerEvent,
+    handler: (e: PointerEvent, x: number, y: number) => void | Promise<void>
 ): void {
     click(e, (ne, x, y) => {
         // --- 判断当前第几次点击 ---
@@ -93,14 +88,10 @@ let lastLongTime: number = 0;
 
 /**
  * --- 绑定长按事件 ---
- * --- touch 和 mouse 事件只可能成功绑定一个 ---
  * @param e 事件原型
  * @param long 长按回调
  */
-export function long(e: MouseEvent | TouchEvent, long: (e: MouseEvent | TouchEvent) => void | Promise<void>): void {
-    if (utils.hasTouchButMouse(e)) {
-        return;
-    }
+export function long(e: PointerEvent, long: (e: PointerEvent) => void | Promise<void>): void {
     const { 'x': tx, 'y': ty, } = utils.getEventPos(e);
     let ox = 0, oy = 0, isLong = false;
     let timer: number | undefined = window.setTimeout(() => {
@@ -133,7 +124,7 @@ export function long(e: MouseEvent | TouchEvent, long: (e: MouseEvent | TouchEve
  * @param e 事件对象
  * @returns true 允许，false 不允许
  */
-export function allowEvent(e: MouseEvent | TouchEvent | KeyboardEvent): boolean {
+export function allowEvent(e: PointerEvent | KeyboardEvent): boolean {
     const now = Date.now();
     if (now - lastLongTime < 5) {
         // --- 防抖处理，刚刚结束了 long 的所有事件不响应 ---
