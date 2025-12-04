@@ -314,6 +314,20 @@ Border direction type.
 type TBorder = 'lt' | 't' | 'tr' | 'r' | 'rb' | 'b' | 'bl' | 'l' | '';
 ```
 
+### `IDownOptions`
+
+Options for the down function.
+
+```typescript
+interface IDownOptions {
+    down?: (e: PointerEvent) => void;
+    start?: (e: PointerEvent) => any;
+    move?: (e: PointerEvent, dir: TDirection) => any;
+    up?: (e: PointerEvent) => void | Promise<void>;
+    end?: (e: PointerEvent) => void | Promise<void>;
+}
+```
+
 ### `IMoveDetail`
 
 Detailed information in the move callback.
@@ -333,6 +347,120 @@ interface IMoveDetail {
     };
     dir: TDirection; // Direction of movement
 }
+```
+
+### `IMoveTime`
+
+Movement time record.
+
+```typescript
+interface IMoveTime {
+    time: number;
+    ox: number;
+    oy: number;
+}
+```
+
+### `IMoveOptions`
+
+Options for the move function.
+
+```typescript
+interface IMoveOptions {
+    areaObject?: HTMLElement;
+    left?: number;
+    top?: number;
+    right?: number;
+    bottom?: number;
+    offsetLeft?: number;
+    offsetTop?: number;
+    offsetRight?: number;
+    offsetBottom?: number;
+    objectLeft?: number;
+    objectTop?: number;
+    objectWidth?: number;
+    objectHeight?: number;
+    object?: HTMLElement;
+    cursor?: string;
+    start?: (x: number, y: number) => any;
+    move?: (e: PointerEvent, detail: IMoveDetail) => void;
+    borderIn?: (x: number, y: number, border: TBorder, e: PointerEvent) => void;
+    borderOut?: () => void;
+    up?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
+    end?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
+}
+```
+
+### `IMoveResult`
+
+Result returned by the move function.
+
+```typescript
+interface IMoveResult {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+}
+```
+
+### `IResizeOptions`
+
+Options for the resize function.
+
+```typescript
+interface IResizeOptions {
+    border: TBorder;
+    minWidth?: number;
+    minHeight?: number;
+    maxWidth?: number;
+    maxHeight?: number;
+    object?: HTMLElement;
+    objectLeft?: number;
+    objectTop?: number;
+    objectWidth?: number;
+    objectHeight?: number;
+    start?: (x: number, y: number) => any;
+    move?: (left: number, top: number, width: number, height: number, x: number, y: number, border: TBorder) => void;
+    end?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
+}
+```
+
+### `IDragOptions`
+
+Options for the drag function.
+
+```typescript
+interface IDragOptions {
+    data?: any;
+    start?: (x: number, y: number) => any;
+    move?: (e: PointerEvent, detail: IMoveDetail) => void;
+    end?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
+}
+```
+
+### `TScaleHandler`
+
+Handler function type for scale events.
+
+```typescript
+type TScaleHandler = (e: PointerEvent | WheelEvent, scale: number, cpos: { x: number; y: number; }) => void | Promise<void>;
+```
+
+### `TGestureBeforeHandler`
+
+Before handler function type for gesture events. Return 1 to show gesture, 0 to ignore, -1 to stop propagation.
+
+```typescript
+type TGestureBeforeHandler = (e: PointerEvent | WheelEvent, dir: TDirection) => number;
+```
+
+### `TGestureHandler`
+
+Handler function type for gesture events.
+
+```typescript
+type TGestureHandler = (dir: TDirection) => void | Promise<void>;
 ```
 
 ## Demo
