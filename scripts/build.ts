@@ -1,16 +1,19 @@
 import { rollup } from 'rollup';
 import typescript from '@rollup/plugin-typescript';
 import terser from '@rollup/plugin-terser';
+import { execSync } from 'child_process';
 
 async function build(): Promise<void> {
+    // --- 生成声明文件 ---
+    execSync('npx tsc --declaration --emitDeclarationOnly --removeComments false', { 'stdio': 'inherit' });
+
     // --- ESM 格式 ---
     const esmBundle = await rollup({
         'input': 'src/index.ts',
         'plugins': [
             typescript({
                 'tsconfig': './tsconfig.json',
-                'declaration': true,
-                'declarationDir': './dist',
+                'declaration': false
             })
         ]
     });

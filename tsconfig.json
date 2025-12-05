@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "module": "esnext",
-        "removeComments": false,
+        "removeComments": true,
         "preserveConstEnums": true,
         "rootDir": "./",
         "outDir": "./dist/",
