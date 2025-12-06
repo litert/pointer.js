@@ -597,7 +597,11 @@ function getGestureEl() {
         gestureEl = document.createElement('div');
         gestureEl.className = 'pointer-gesture';
         document.body.appendChild(gestureEl);
-        gestureEl.insertAdjacentHTML('afterend', `<style>.pointer-gesture{position:fixed;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,.7);pointer-events:none;z-index:999999;opacity:0;transition:opacity 0.2s;transform-origin:center;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));}.pointer-gesture-done::before{content:'';background:rgba(255,255,255,.9);border-radius:50%;width:10px;height:10px;}</style>`);
+        gestureEl.insertAdjacentHTML('afterend', `<style>` +
+            `.pointer-gesture{position:fixed;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,.7);pointer-events:none;z-index:999999;opacity:0;transition:opacity 0.2s;transform-origin:center;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));}` +
+            `.pointer-gesture-done::before{content:'';background:rgba(255,255,255,.9);border-radius:50%;width:10px;height:10px;}` +
+            `.pointer-gesture-ani{transition: all .3s cubic-bezier(.39,.575,.565,1);transition-property:left,top,transform;}` +
+            `</style>`);
     }
     return gestureEl;
 }
@@ -718,7 +722,7 @@ function gesture(oe, before, handler) {
                 gestureWheel.firstTimer = true;
                 await sleep(30);
                 gestureWheel.firstTimer = false;
-                g.classList.add('ani');
+                g.classList.add('pointer-gesture-ani');
             }
             const isVertical = gestureWheel.dir === 'top' || gestureWheel.dir === 'bottom';
             const delta = isVertical ? deltaY : deltaX;
@@ -736,7 +740,7 @@ function gesture(oe, before, handler) {
             if (offset < 90) {
                 gestureWheel.timer = window.setTimeout(() => {
                     g.style.opacity = '0';
-                    g.classList.remove('ani');
+                    g.classList.remove('pointer-gesture-ani');
                 }, 250);
                 return;
             }
@@ -744,7 +748,7 @@ function gesture(oe, before, handler) {
             handler?.(gestureWheel.dir);
             await sleep(500);
             g.style.opacity = '0';
-            g.classList.remove('ani');
+            g.classList.remove('pointer-gesture-ani');
         })().catch(() => { });
     }
 }
