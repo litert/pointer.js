@@ -257,7 +257,7 @@
                 exports.isMoving = false;
                 set();
                 for (const hook of hooks.up) {
-                    hook(moveTimes, e, opt);
+                    hook(e, opt);
                 }
                 opt.up?.(moveTimes, ne);
             },
