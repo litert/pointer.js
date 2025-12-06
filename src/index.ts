@@ -27,7 +27,9 @@ export type {
     IDragOptions,
     TScaleHandler,
     TGestureBeforeHandler,
-    TGestureHandler
+    TGestureHandler,
+    TMoveDownHook,
+    TMoveUpHook
 } from './types';
 
 // --- Export Utils ---
@@ -42,9 +44,15 @@ export { set as setCursor } from './cursor';
 
 // --- Export Core Functions ---
 export { down } from './down';
-export { move, isMoving } from './move';
+export {
+    move, isMoving,
+    addHook as addMoveHook, removeHook as removeMoveHook
+} from './move';
 export { click, dblClick, long, allowEvent } from './click';
 export { resize } from './resize';
-export { drag, getData as getDragData, setData as setDragData } from './drag';
+export {
+    drag,
+    getData as getDragData, setData as setDragData
+} from './drag';
 export { scale } from './scale';
 export { gesture } from './gesture';

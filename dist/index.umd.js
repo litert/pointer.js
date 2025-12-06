@@ -94,6 +94,19 @@
     }
 
     exports.isMoving = false;
+    const hooks = {
+        'down': [],
+        'up': [],
+    };
+    function addHook(event, hook) {
+        hooks[event].push(hook);
+    }
+    function removeHook(event, hook) {
+        const index = hooks[event].indexOf(hook);
+        if (index !== -1) {
+            hooks[event].splice(index, 1);
+        }
+    }
     function clampToBorder(val, prevVal, nowMin, nowMax, min, max, offsetMin, offsetMax) {
         let atMin = false, atMax = false;
         if (nowMin <= min) {
@@ -175,6 +188,9 @@
         let objectLeft = 0, objectTop = 0, objectWidth = 0, objectHeight = 0;
         let offsetLeft = 0, offsetTop = 0, offsetRight = 0, offsetBottom = 0;
         const moveTimes = [];
+        for (const hook of hooks.down) {
+            hook(e, opt);
+        }
         down(e, {
             start: () => {
                 if (opt.start?.(tx, ty) === false) {
@@ -237,12 +253,15 @@
                 tx = x;
                 ty = y;
             },
-            up: (ne) => {
+            up: ne => {
                 exports.isMoving = false;
                 set();
+                for (const hook of hooks.up) {
+                    hook(moveTimes, e, opt);
+                }
                 opt.up?.(moveTimes, ne);
             },
-            end: (ne) => {
+            end: ne => {
                 opt.end?.(moveTimes, ne);
             }
         });
@@ -736,6 +755,7 @@
         }
     }
 
+    exports.addMoveHook = addHook;
     exports.allowEvent = allowEvent;
     exports.click = click;
     exports.dblClick = dblClick;
@@ -748,6 +768,7 @@
     exports.isTouch = isTouch;
     exports.long = long;
     exports.move = move;
+    exports.removeMoveHook = removeHook;
     exports.resize = resize;
     exports.scale = scale;
     exports.setCursor = set;

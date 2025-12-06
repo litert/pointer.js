@@ -167,3 +167,9 @@ export type TGestureBeforeHandler = (e: PointerEvent | WheelEvent, dir: TDirecti
 
 /** --- gesture handler 回调函数类型 --- */
 export type TGestureHandler = (dir: TDirection) => void | Promise<void>;
+
+/** --- move down 全局钩子函数类型 --- */
+export type TMoveDownHook = (e: PointerEvent, opt: IMoveOptions) => void | Promise<void>;
+
+/** --- move up 全局钩子函数类型 --- */
+export type TMoveUpHook = (e: PointerEvent, opt: IMoveOptions) => void | Promise<void>;

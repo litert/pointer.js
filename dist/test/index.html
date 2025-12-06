@@ -85,6 +85,7 @@
             font-size: 12px;
             font-weight: 600;
             box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+            /* --- 禁止滚动 --- */
             touch-action: none;
         }
         .resize-handle {
@@ -116,6 +117,8 @@
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.1s, background 0.2s;
+            /* --- 禁止双击放大 --- */
+            touch-action: manipulation;
         }
         .click-area:hover {
             background: #2563eb;
@@ -142,6 +145,8 @@
             color: #fff;
             font-weight: 600;
             cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
         }
         .long-press-area .status {
             font-size: 24px;
@@ -361,7 +366,7 @@
                 <div class="demo-area">
                     <div class="long-press-area" id="long-area">
                         <div class="status" id="long-status">👆 Hold</div>
-                        <div>Press and hold for 500ms</div>
+                        <div>Press and hold for 300ms</div>
                         <div class="progress">
                             <div class="progress-bar" id="long-progress"></div>
                         </div>

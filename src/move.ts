@@ -22,6 +22,48 @@ import { down } from './down';
 /** --- 目前是否正在拖动 --- */
 export let isMoving: boolean = false;
 
+/** --- 全局钩子列表 --- */
+const hooks: {
+    'down': types.TMoveDownHook[];
+    'up': types.TMoveUpHook[];
+} = {
+    'down': [],
+    'up': [],
+};
+
+/**
+ * --- 添加全局钩子 ---
+ * @param event 事件
+ * @param hook 钩子函数
+ */
+export function addHook(
+    event: 'down', hook: types.TMoveDownHook
+): void;
+export function addHook(
+    event: 'up', hook: types.TMoveUpHook
+): void;
+export function addHook(
+    event: 'down' | 'up', hook: types.TMoveDownHook | types.TMoveUpHook
+): void {
+    hooks[event].push(hook);
+}
+
+/** --- 移动全局钩子 --- */
+export function removeHook(
+    event: 'down', hook: types.TMoveDownHook
+): void;
+export function removeHook(
+    event: 'up', hook: types.TMoveUpHook
+): void;
+export function removeHook(
+    event: 'down' | 'up', hook: types.TMoveDownHook | types.TMoveUpHook
+): void {
+    const index = hooks[event].indexOf(hook);
+    if (index !== -1) {
+        hooks[event].splice(index, 1);
+    }
+}
+
 /**
  * --- 计算边界限制后的坐标 ---
  * --- 用于在拖动过程中限制元素位置不超过指定的边界范围 ---
@@ -160,6 +202,10 @@ export function move(e: PointerEvent, opt: types.IMoveOptions): types.IMoveResul
     let offsetLeft = 0, offsetTop = 0, offsetRight = 0, offsetBottom = 0;
     const moveTimes: types.IMoveTime[] = [];
 
+    // --- 执行全局 down 钩子 ---
+    for (const hook of hooks.down) {
+        hook(e, opt) as any;
+    }
     down(e, {
         start: () => {
             if (opt.start?.(tx, ty) === false) {
@@ -228,12 +274,16 @@ export function move(e: PointerEvent, opt: types.IMoveOptions): types.IMoveResul
             tx = x;
             ty = y;
         },
-        up: (ne) => {
+        up: ne => {
             isMoving = false;
             cursor.set();
+            // --- 执行全局 up 钩子 ---
+            for (const hook of hooks.up) {
+                hook(e, opt) as any;
+            }
             opt.up?.(moveTimes, ne);
         },
-        end: (ne) => {
+        end: ne => {
             opt.end?.(moveTimes, ne);
         }
     });

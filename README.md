@@ -25,6 +25,7 @@ A lightweight pointer event library for handling mouse, touch, and pen interacti
 - 🔄 Drag and drop with customizable constraints
 - 📐 Resize functionality with border detection
 - 🎨 Global cursor management
+- 🪝 Global hooks for move events
 - 📦 Zero dependencies
 - 🔷 Full TypeScript support
 - 🌐 ESM and UMD bundle support
@@ -170,6 +171,25 @@ element.addEventListener('pointerdown', (e) => {
         }
     });
 });
+```
+
+#### `addMoveHook(event, hook)` & `removeMoveHook(event, hook)`
+
+Global hooks for move events. These hooks are called for all move operations.
+
+```typescript
+// --- Register global move down hook ---
+pointer.addMoveHook('down', (e, opt) => {
+    console.log('Global move down hook:', e, opt);
+});
+
+// --- Register global move up hook ---
+pointer.addMoveHook('up', (e, opt) => {
+    console.log('Global move up hook:', moveTimes, e, opt);
+});
+
+// --- Remove a hook ---
+pointer.removeMoveHook('down', hookFunction);
 ```
 
 #### `resize(e, options)`
@@ -461,6 +481,22 @@ Handler function type for gesture events.
 
 ```typescript
 type TGestureHandler = (dir: TDirection) => void | Promise<void>;
+```
+
+### `TMoveDownHook`
+
+Global hook function type for move down events.
+
+```typescript
+type TMoveDownHook = (e: PointerEvent, opt: IMoveOptions) => void | Promise<void>;
+```
+
+### `TMoveUpHook`
+
+Global hook function type for move up events.
+
+```typescript
+type TMoveUpHook = (e: PointerEvent, opt: IMoveOptions) => void | Promise<void>;
 ```
 
 ## Demo
