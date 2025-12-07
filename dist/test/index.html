@@ -264,6 +264,31 @@
             font-size: 12px;
             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
+        .hover-area {
+            background: #3b82f6;
+            border-radius: 8px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .2s;
+            touch-action: none;
+        }
+        .hover-area:hover {
+            background: #2563eb;
+        }
+        .hover-area .status {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .hover-area .hint {
+            font-size: 12px;
+            opacity: 0.9;
+        }
         .gesture-area {
             background: #f1f5f9;
             border-radius: 8px;
@@ -284,21 +309,7 @@
         .gesture-area .hint {
             font-size: 12px;
             color: #94a3b8;
-        }
-        .event-test-element {
-            width: 100px;
-            height: 100px;
-            background: #ec4899;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-weight: 600;
-            font-size: 12px;
-            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
-            touch-action: none;
-        }
+        }        
     </style>
 </head>
 <body>
@@ -415,6 +426,19 @@
                 <div class="log" id="scale-log">Scroll wheel to zoom, drag to pan</div>
             </div>
 
+            <!-- hover 演示 -->
+            <div class="demo-card">
+                <h2>hover - Hover</h2>
+                <div class="demo-area">
+                    <div class="hover-area" id="hover-area">
+                        <div class="status" id="hover-status">👆 Hover</div>
+                        <div>Hover or touch</div>
+                        <div class="hint">Pointer enter/leave</div>
+                    </div>
+                </div>
+                <div class="log" id="hover-log">Move pointer over the area</div>
+            </div>
+
             <!-- gesture 演示 -->
             <div class="demo-card">
                 <h2>gesture - Swipe</h2>
@@ -427,17 +451,7 @@
                 </div>
                 <div class="log" id="gesture-log">Swipe up/down/left/right</div>
             </div>
-
-            <!-- event 测试 -->
-            <div class="demo-card">
-                <h2>Event Testing</h2>
-                <div class="demo-area" id="event-area">
-                    <div class="event-test-element" id="event-element">
-                        Test Element
-                    </div>
-                </div>
-                <div class="log" id="event-log">Event log will appear here</div>
-            </div>
+        
         </div>
     </div>
 
@@ -647,6 +661,31 @@
         scaleArea.addEventListener('pointerdown', handleScale);
         scaleArea.addEventListener('wheel', handleScale);
 
+        // --- hover 演示 ---
+        const hoverArea = document.getElementById('hover-area');
+        const hoverStatus = document.getElementById('hover-status');
+        const hoverLog = document.getElementById('hover-log');
+
+        function handleHover(e) {
+            pointer.hover(e, {
+                'enter': function(e) {
+                    hoverStatus.textContent = '✅ Entered';
+                    hoverArea.style.background = '#10b981';
+                    hoverLog.textContent = 'Pointer entered at (' + Math.round(e.clientX) + ', ' + Math.round(e.clientY) + ')';
+                },
+                'move': function(e) {
+                    hoverLog.textContent = 'Moving at (' + Math.round(e.clientX) + ', ' + Math.round(e.clientY) + ')';
+                },
+                'leave': function(e) {
+                    hoverStatus.textContent = '👆 Hover';
+                    hoverArea.style.background = '#3b82f6';
+                    hoverLog.textContent = 'Pointer left';
+                }
+            });
+        }
+        hoverArea.addEventListener('pointerdown', handleHover);
+        hoverArea.addEventListener('pointerenter', handleHover);
+
         // --- gesture 演示 ---
         const gestureArea = document.getElementById('gesture-area');
         const gestureDir = document.getElementById('gesture-dir');
@@ -676,23 +715,7 @@
         gestureArea.addEventListener('pointerdown', handleGesture);
         gestureArea.addEventListener('wheel', handleGesture);
 
-        // --- event 测试 ---
-        const eventElement = document.getElementById('event-element');
-        const eventLog = document.getElementById('event-log');
-
-        const events = [
-            'mousedown', 'mouseup', 'click', 'dblclick', 'mousemove', 'mouseover', 'mouseout', 'mouseenter', 'mouseleave', 'contextmenu', 'wheel',
-            'touchstart', 'touchend', 'touchmove', 'touchcancel',
-            'pointerdown', 'pointerup', 'pointermove', 'pointercancel', 'pointerenter', 'pointerleave', 'pointerover', 'pointerout', 'gotpointercapture', 'lostpointercapture'
-        ];
-
-        function logEvent(e) {
-            eventLog.innerHTML = e.type + '<br>' + eventLog.innerHTML;
-        }
-
-        events.forEach(function(eventType) {
-            eventElement.addEventListener(eventType, logEvent);
-        });
+        
     </script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 /**
- * Copyright 2024-2025 MAIYUYN.NET
+ * Copyright 2007-2026 MAIYUYN.NET
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,13 @@ export type TDirection = 'top' | 'right' | 'bottom' | 'left';
 
 /** --- 边界方向类型，从左上开始 --- */
 export type TBorder = 'lt' | 't' | 'tr' | 'r' | 'rb' | 'b' | 'bl' | 'l' | '';
+
+/** --- hover 选项 --- */
+export interface IHoverOptions {
+    'enter'?: (e: PointerEvent) => void | Promise<void>;
+    'move'?: (e: PointerEvent) => void | Promise<void>;
+    'leave'?: (e: PointerEvent) => void | Promise<void>;
+}
 
 /** --- down 选项 --- */
 export interface IDownOptions {

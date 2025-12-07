@@ -46,6 +46,51 @@
         }
     }
 
+    function hover(oe, opt) {
+        const el = oe.currentTarget;
+        if (!el) {
+            return;
+        }
+        if (oe.pointerType === 'touch') {
+            if (el.dataset.pointerHover) {
+                return;
+            }
+            el.dataset.pointerHover = '1';
+            opt.enter?.(oe);
+            const move = function (e) {
+                opt.move?.(e);
+            };
+            const leave = function (e) {
+                opt.leave?.(e);
+                delete el.dataset.pointerHover;
+                el.removeEventListener('pointerleave', leave);
+                window.removeEventListener('pointermove', move);
+                window.removeEventListener('pointerup', leave);
+                window.removeEventListener('pointercancel', leave);
+            };
+            el.addEventListener('pointerleave', leave);
+            window.addEventListener('pointermove', move);
+            window.addEventListener('pointerup', leave);
+            window.addEventListener('pointercancel', leave);
+        }
+        else {
+            if (oe.type === 'pointerdown') {
+                return;
+            }
+            opt.enter?.(oe);
+            const move = function (e) {
+                opt.move?.(e);
+            };
+            const leave = function (e) {
+                opt.leave?.(e);
+                window.removeEventListener('pointermove', move);
+                el.removeEventListener('pointerleave', leave);
+            };
+            window.addEventListener('pointermove', move);
+            el.addEventListener('pointerleave', leave);
+        }
+    }
+
     function down(oe, opt) {
         const target = oe.target;
         let { 'x': ox, 'y': oy } = getEventPos(oe);
@@ -769,6 +814,7 @@
     exports.getDragData = getData;
     exports.getEventPos = getEventPos;
     exports.getMoveDir = getMoveDir;
+    exports.hover = hover;
     exports.isTouch = isTouch;
     exports.long = long;
     exports.move = move;

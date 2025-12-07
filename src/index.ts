@@ -1,5 +1,5 @@
 /**
- * Copyright 2024-2025 MAIYUYN.NET
+ * Copyright 2007-2026 MAIYUYN.NET
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@ export {
 export { set as setCursor } from './cursor';
 
 // --- Export Core Functions ---
+export { hover } from './hover';
 export { down } from './down';
 export {
     move, isMoving,

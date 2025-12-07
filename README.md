@@ -15,13 +15,14 @@
     </a>
 </p>
 
-A lightweight pointer event library for handling mouse, touch, and pen interactions in browsers. Provides unified APIs for down, move, click, long, drag, resize and more.
+A lightweight pointer event library for handling mouse, touch, and pen interactions in browsers. Provides unified APIs for down, move, click, long, hover, drag, resize and more.
 
 ## Features
 
 - 🖱️ Unified pointer event handling (mouse, touch, pen)
 - 📱 Mobile-friendly with touch support
 - 🎯 Click, double-click, and long-press detection
+- 👆 Hover detection with enter/move/leave callbacks
 - 🔄 Drag and drop with customizable constraints
 - 📐 Resize functionality with border detection
 - 🎨 Global cursor management
@@ -129,6 +130,28 @@ element.addEventListener('pointerdown', (e) => {
         console.log('Long press detected!');
     }, 500);
 });
+```
+
+#### `hover(e, options)`
+
+Hover event, handles enter, move, and leave for mouse and touch.
+
+```typescript
+const cb = (e) => {
+    pointer.hover(e, {
+        enter: (e) => {
+            console.log('Pointer entered');
+        },
+        move: (e) => {
+            console.log('Pointer moving at:', e.clientX, e.clientY);
+        },
+        leave: (e) => {
+            console.log('Pointer left');
+        }
+    });
+};
+element.addEventListener('pointerdown', cb);
+element.addEventListener('pointerenter', cb);
 ```
 
 #### `move(e, options)`
@@ -345,6 +368,18 @@ interface IDownOptions {
     move?: (e: PointerEvent, dir: TDirection) => any;
     up?: (e: PointerEvent) => void | Promise<void>;
     end?: (e: PointerEvent) => void | Promise<void>;
+}
+```
+
+### `IHoverOptions`
+
+Options for the hover function.
+
+```typescript
+interface IHoverOptions {
+    enter?: (e: PointerEvent) => void;
+    move?: (e: PointerEvent) => void;
+    leave?: (e: PointerEvent) => void;
 }
 ```
 
