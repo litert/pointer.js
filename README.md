@@ -120,7 +120,7 @@ element.addEventListener('pointerdown', (e) => {
 });
 ```
 
-#### `long(e, handler, time?)`
+#### `long(e, handler, options?)`
 
 Long press event, default 300ms.
 
@@ -128,7 +128,7 @@ Long press event, default 300ms.
 element.addEventListener('pointerdown', (e) => {
     pointer.long(e, (e) => {
         console.log('Long press detected!');
-    }, 500);
+    }, { 'time': 500 });
 });
 ```
 
@@ -383,6 +383,18 @@ interface IHoverOptions {
 }
 ```
 
+### `ILongOptions`
+
+Options for the long function.
+
+```typescript
+interface ILongOptions {
+    time?: number; // Long press time, default 300 ms
+    down?: (e: PointerEvent) => void | Promise<void>;
+    up?: (e: PointerEvent) => void | Promise<void>;
+}
+```
+
 ### `IMoveDetail`
 
 Detailed information in the move callback.
@@ -516,6 +528,14 @@ Handler function type for gesture events.
 
 ```typescript
 type TGestureHandler = (dir: TDirection) => void | Promise<void>;
+```
+
+### `TMenuHandler`
+
+Handler function type for menu events.
+
+```typescript
+type TMenuHandler = (e: PointerEvent | MouseEvent) => void | Promise<void>;
 ```
 
 ### `TMoveDownHook`
