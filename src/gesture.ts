@@ -81,13 +81,6 @@ function updateGestureStyle(
 }
 
 /**
- * --- 简单的 sleep 工具函数 ---
- */
-function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
  * --- 绑定上拉、下拉、左拉、右拉手势 ---
  * @param oe 响应事件
  * @param before before 事件，返回 1 则显示 gesture，0 则不处理（可能会向上传递事件），-1 则 stopPropagation（本层可拖动，若实际不可拖动则可能导致浏览器页面滚动）
@@ -193,7 +186,7 @@ export function gesture(
                 }
                 updateGestureStyle(rect, gestureWheel.dir, 0, true);
                 gestureWheel.firstTimer = true;
-                await sleep(30);
+                await utils.sleep(30);
                 gestureWheel.firstTimer = false;
                 g.classList.add('pointer-gesture-ani');
             }
@@ -219,7 +212,7 @@ export function gesture(
             }
             gestureWheel.done = true;
             handler?.(gestureWheel.dir) as any;
-            await sleep(500);
+            await utils.sleep(500);
             g.style.opacity = '0';
             g.classList.remove('pointer-gesture-ani');
         })().catch(() => {});

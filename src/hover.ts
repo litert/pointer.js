@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+import * as utils from './utils';
 import * as types from './types';
 
 /**
@@ -28,19 +28,19 @@ export function hover(oe: PointerEvent, opt: types.IHoverOptions): void {
         return;
     }
 
-    if (oe.pointerType === 'touch') {
+    if (utils.isTouch(oe)) {
         // --- down、enter 都视为 enter 事件 ---
         if (el.dataset.pointerHover) {
             // --- 防抖：down 和 enter 同时触发 ---
             return;
         }
         el.dataset.pointerHover = '1';
-        opt.enter?.(oe);
+        opt.enter?.(oe) as any;
         const move = function(e: PointerEvent): void {
-            opt.move?.(e);
+            opt.move?.(e) as any;
         };
         const leave = function(e: PointerEvent): void {
-            opt.leave?.(e);
+            opt.leave?.(e) as any;
             delete el.dataset.pointerHover;
             el.removeEventListener('pointerleave', leave);
             window.removeEventListener('pointermove', move);
@@ -58,12 +58,12 @@ export function hover(oe: PointerEvent, opt: types.IHoverOptions): void {
         if (oe.type === 'pointerdown') {
             return;
         }
-        opt.enter?.(oe);
+        opt.enter?.(oe) as any;
         const move = function(e: PointerEvent): void {
-            opt.move?.(e);
+            opt.move?.(e) as any;
         };
         const leave = function(e: PointerEvent): void {
-            opt.leave?.(e);
+            opt.leave?.(e) as any;
             window.removeEventListener('pointermove', move);
             el.removeEventListener('pointerleave', leave);
         };

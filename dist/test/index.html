@@ -451,6 +451,18 @@
                 </div>
                 <div class="log" id="gesture-log">Swipe up/down/left/right</div>
             </div>
+
+            <!-- menu 演示 -->
+            <div class="demo-card">
+                <h2>menu - Context Menu / Long Press</h2>
+                <div class="demo-area">
+                    <div class="long-press-area" id="menu-area">
+                        <div class="status" id="menu-status">👆 Right-click or hold</div>
+                        <div>Right-click (desktop) or long press (mobile)</div>
+                    </div>
+                </div>
+                <div class="log" id="menu-log">Right-click or long press the area</div>
+            </div>
         
         </div>
     </div>
@@ -714,6 +726,22 @@
         }
         gestureArea.addEventListener('pointerdown', handleGesture);
         gestureArea.addEventListener('wheel', handleGesture);
+
+        // --- menu 演示 ---
+        const menuArea = document.getElementById('menu-area');
+        const menuStatus = document.getElementById('menu-status');
+        const menuLog = document.getElementById('menu-log');
+
+        function handleMenu(e) {
+            pointer.menu(e, function(e) {
+                menuStatus.textContent = '✅ Menu triggered';
+                menuLog.textContent = 'Menu event fired';
+                setTimeout(function() {
+                    menuStatus.textContent = '👆 Right-click or hold';
+                }, 1000);
+            });
+        }
+        menuArea.addEventListener('pointerdown', handleMenu);
 
         
     </script>

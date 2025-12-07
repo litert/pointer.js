@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as utils from './utils';
 import { down } from './down';
 
 /**
@@ -81,59 +80,4 @@ export function dblClick(
         lastDblClickData.x = x;
         lastDblClickData.y = y;
     });
-}
-
-/** --- 最后一次长按触发的时间 --- */
-let lastLongTime: number = 0;
-
-/**
- * --- 绑定长按事件 ---
- * @param e 事件原型
- * @param long 长按回调
- * @param time 长按时间，默认 300ms
- */
-export function long(e: PointerEvent, long: (e: PointerEvent) => void | Promise<void>, time?: number): void {
-    const { 'x': tx, 'y': ty, } = utils.getEventPos(e);
-    let ox = 0, oy = 0, isLong = false;
-    let timer: number | undefined = window.setTimeout(() => {
-        timer = undefined;
-        if (ox <= 1 && oy <= 1) {
-            isLong = true;
-            Promise.resolve(long(e)).catch((err) => { throw err; });
-        }
-    }, time ?? 300);
-    down(e, {
-        move: (ne) => {
-            const { x, y } = utils.getEventPos(ne);
-            ox = Math.abs(x - tx);
-            oy = Math.abs(y - ty);
-        },
-        up: () => {
-            if (timer !== undefined) {
-                clearTimeout(timer);
-                timer = undefined;
-            }
-            else if (isLong) {
-                lastLongTime = Date.now();
-            }
-        }
-    });
-}
-
-/**
- * --- 判断是否允许事件通过（检查是否被禁用） ---
- * @param e 事件对象
- * @returns true 允许，false 不允许
- */
-export function allowEvent(e: PointerEvent | KeyboardEvent): boolean {
-    const now = Date.now();
-    if (now - lastLongTime < 5) {
-        // --- 防抖处理，刚刚结束了 long 的所有事件不响应 ---
-        return false;
-    }
-    const current = e.currentTarget as HTMLElement;
-    if (utils.isDisabled(current)) {
-        return false;
-    }
-    return true;
 }

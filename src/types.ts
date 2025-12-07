@@ -26,18 +26,28 @@ export type TBorder = 'lt' | 't' | 'tr' | 'r' | 'rb' | 'b' | 'bl' | 'l' | '';
 
 /** --- hover 选项 --- */
 export interface IHoverOptions {
-    'enter'?: (e: PointerEvent) => void | Promise<void>;
-    'move'?: (e: PointerEvent) => void | Promise<void>;
-    'leave'?: (e: PointerEvent) => void | Promise<void>;
+    enter?: (e: PointerEvent) => void | Promise<void>;
+    move?: (e: PointerEvent) => void | Promise<void>;
+    leave?: (e: PointerEvent) => void | Promise<void>;
 }
 
 /** --- down 选项 --- */
 export interface IDownOptions {
-    'down'?: (e: PointerEvent) => void;
-    'start'?: (e: PointerEvent) => any;
-    'move'?: (e: PointerEvent, dir: TDirection) => any;
-    'up'?: (e: PointerEvent) => void | Promise<void>;
-    'end'?: (e: PointerEvent) => void | Promise<void>;
+    down?: (e: PointerEvent) => void | Promise<void>;
+    start?: (e: PointerEvent) => any;
+    move?: (e: PointerEvent, dir: TDirection) => any;
+    /** --- 必有 up（包括 cancel） --- */
+    up?: (e: PointerEvent) => void | Promise<void>;
+    /** --- 有 start 才有 end --- */
+    end?: (e: PointerEvent) => void | Promise<void>;
+}
+
+/** --- long 选项 --- */
+export interface ILongOptions {
+    /** --- 长按时间，默认 300 ms --- */
+    'time'?: number;
+    down?: (e: PointerEvent) => void | Promise<void>;
+    up?: (e: PointerEvent) => void | Promise<void>;
 }
 
 /** --- move 回调参数 --- */
@@ -103,17 +113,17 @@ export interface IMoveOptions {
     /** --- 光标样式 --- */
     'cursor'?: string;
     /** --- 开始回调 --- */
-    'start'?: (x: number, y: number) => any;
+    start?: (x: number, y: number) => any;
     /** --- 移动回调 --- */
-    'move'?: (e: PointerEvent, detail: IMoveDetail) => void;
+    move?: (e: PointerEvent, detail: IMoveDetail) => void;
     /** --- 进入边界回调 --- */
-    'borderIn'?: (x: number, y: number, border: TBorder, e: PointerEvent) => void;
+    borderIn?: (x: number, y: number, border: TBorder, e: PointerEvent) => void;
     /** --- 离开边界回调 --- */
-    'borderOut'?: () => void;
+    borderOut?: () => void;
     /** --- 鼠标抬起回调 --- */
-    'up'?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
+    up?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
     /** --- 结束回调 --- */
-    'end'?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
+    end?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
 }
 
 /** --- move 返回值 --- */
@@ -147,11 +157,11 @@ export interface IResizeOptions {
     /** --- 对象高度 --- */
     'objectHeight'?: number;
     /** --- 开始回调 --- */
-    'start'?: (x: number, y: number) => any;
+    start?: (x: number, y: number) => any;
     /** --- 移动回调 --- */
-    'move'?: (left: number, top: number, width: number, height: number, x: number, y: number, border: TBorder) => void;
+    move?: (left: number, top: number, width: number, height: number, x: number, y: number, border: TBorder) => void;
     /** --- 结束回调 --- */
-    'end'?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
+    end?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
 }
 
 /** --- drag 选项 --- */
@@ -159,11 +169,11 @@ export interface IDragOptions {
     /** --- 拖拽元素 --- */
     'data'?: any;
     /** --- 开始回调 --- */
-    'start'?: (x: number, y: number) => any;
+    start?: (x: number, y: number) => any;
     /** --- 移动回调 --- */
-    'move'?: (e: PointerEvent, detail: IMoveDetail) => void;
+    move?: (e: PointerEvent, detail: IMoveDetail) => void;
     /** --- 结束回调 --- */
-    'end'?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
+    end?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
 }
 
 /** --- scale 回调函数类型 --- */
@@ -174,6 +184,9 @@ export type TGestureBeforeHandler = (e: PointerEvent | WheelEvent, dir: TDirecti
 
 /** --- gesture handler 回调函数类型 --- */
 export type TGestureHandler = (dir: TDirection) => void | Promise<void>;
+
+/** --- menu handler 回调函数类型 --- */
+export type TMenuHandler = (e: PointerEvent | MouseEvent) => void | Promise<void>;
 
 /** --- move down 全局钩子函数类型 --- */
 export type TMoveDownHook = (e: PointerEvent, opt: IMoveOptions) => void | Promise<void>;

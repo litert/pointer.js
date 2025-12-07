@@ -1,3 +1,6 @@
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 function isTouch(e) {
     return e.pointerType === 'touch';
 }
@@ -45,7 +48,7 @@ function hover(oe, opt) {
     if (!el) {
         return;
     }
-    if (oe.pointerType === 'touch') {
+    if (isTouch(oe)) {
         if (el.dataset.pointerHover) {
             return;
         }
@@ -351,8 +354,9 @@ function dblClick(e, handler) {
         lastDblClickData.y = y;
     });
 }
+
 let lastLongTime = 0;
-function long(e, long, time) {
+function long(e, long, opt) {
     const { 'x': tx, 'y': ty, } = getEventPos(e);
     let ox = 0, oy = 0, isLong = false;
     let timer = window.setTimeout(() => {
@@ -361,14 +365,16 @@ function long(e, long, time) {
             isLong = true;
             Promise.resolve(long(e)).catch((err) => { throw err; });
         }
-    }, time ?? 300);
+    }, opt?.time ?? 300);
     down(e, {
+        down: opt?.down,
         move: (ne) => {
             const { x, y } = getEventPos(ne);
             ox = Math.abs(x - tx);
             oy = Math.abs(y - ty);
         },
         up: () => {
+            opt?.up?.(e);
             if (timer !== undefined) {
                 clearTimeout(timer);
                 timer = undefined;
@@ -389,6 +395,39 @@ function allowEvent(e) {
         return false;
     }
     return true;
+}
+
+function menu(oe, handler) {
+    const el = oe.currentTarget;
+    if (!el) {
+        return;
+    }
+    if (isTouch(oe)) {
+        const contextMenuHandler = (e) => {
+            e.preventDefault();
+        };
+        window.addEventListener('contextmenu', contextMenuHandler);
+        long(oe, handler, {
+            up: async () => {
+                await sleep(34);
+                window.removeEventListener('contextmenu', contextMenuHandler);
+            }
+        });
+        return;
+    }
+    if (oe.button !== 2) {
+        return;
+    }
+    const contextMenuHandler = (e) => {
+        e.preventDefault();
+        handler(e);
+    };
+    down(oe, {
+        up: () => {
+            window.addEventListener('contextmenu', contextMenuHandler);
+        }
+    });
+    window.addEventListener('contextmenu', contextMenuHandler);
 }
 
 function resize(e, opt) {
@@ -668,9 +707,6 @@ function updateGestureStyle(rect, dir, offset, isInit = false) {
             : `${dir === 'left' ? rect.left + offset / 1.5 : rect.right - 20 - offset / 1.5}px`;
     }
 }
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
 function gesture(oe, before, handler) {
     const el = oe.currentTarget;
     if (!el) {
@@ -798,4 +834,4 @@ function gesture(oe, before, handler) {
     }
 }
 
-export { addHook as addMoveHook, allowEvent, click, dblClick, down, drag, gesture, getData as getDragData, getEventPos, getMoveDir, hover, isMoving, isTouch, long, move, removeHook as removeMoveHook, resize, scale, set as setCursor, setData as setDragData };
+export { addHook as addMoveHook, allowEvent, click, dblClick, down, drag, gesture, getData as getDragData, getEventPos, getMoveDir, hover, isMoving, isTouch, long, menu, move, removeHook as removeMoveHook, resize, scale, set as setCursor, setData as setDragData };

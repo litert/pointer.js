@@ -21,6 +21,13 @@ import * as types from './types';
 // ----------------------
 
 /**
+ * --- 简单的 sleep 工具函数 ---
+ */
+export function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
  * --- 判断当前是否是触摸指针类型 ---
  * @param e 事件对象
  */

@@ -49,7 +49,9 @@ export {
     move, isMoving,
     addHook as addMoveHook, removeHook as removeMoveHook
 } from './move';
-export { click, dblClick, long, allowEvent } from './click';
+export { click, dblClick } from './click';
+export { long, allowEvent } from './long';
+export { menu } from './menu';
 export { resize } from './resize';
 export {
     drag,

@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import * as types from './types';
 import * as utils from './utils';
 
@@ -71,5 +70,5 @@ export function down(oe: PointerEvent, opt: types.IDownOptions): void {
     window.addEventListener('pointermove', move, { 'passive': false });
     window.addEventListener('pointerup', end);
     window.addEventListener('pointercancel', end);
-    opt.down?.(oe);
+    opt.down?.(oe) as any;
 }
