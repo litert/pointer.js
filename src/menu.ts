@@ -55,8 +55,10 @@ export function menu(oe: PointerEvent, handler: types.TMenuHandler): void {
         handler(e) as any;
     };
     down(oe, {
-        up: () => {
-            window.addEventListener('contextmenu', contextMenuHandler);
+        up: async () => {
+            // --- 必须等待一下，因为本次 up 可能就是被 contextmenu 中断导致触发的 ---
+            await utils.sleep(34);
+            window.removeEventListener('contextmenu', contextMenuHandler);
         }
     });
     window.addEventListener('contextmenu', contextMenuHandler);

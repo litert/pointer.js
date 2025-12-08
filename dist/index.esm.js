@@ -423,8 +423,9 @@ function menu(oe, handler) {
         handler(e);
     };
     down(oe, {
-        up: () => {
-            window.addEventListener('contextmenu', contextMenuHandler);
+        up: async () => {
+            await sleep(34);
+            window.removeEventListener('contextmenu', contextMenuHandler);
         }
     });
     window.addEventListener('contextmenu', contextMenuHandler);
