@@ -21,7 +21,7 @@ import { down } from './down';
 
 /**
  * --- 右键菜单事件，电脑触发 contextmenu、手机触发长按 ---
- * --- 绑定在 pointerdown 事件中 ---
+ * --- 绑定在 pointerdown 事件中，会自动阻断默认的菜单 ---
  * @param oe PointerEvent
  * @param handler 回调函数
  */
