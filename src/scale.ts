@@ -50,7 +50,7 @@ function scaleWheel(oe: WheelEvent, handler: types.TScaleHandler): void {
 }
 
 /**
- * --- 绑定指针缩放/拖动，只需绑定到 pointerdown 事件上，其他事件自动绑定并在结束后自动移除 ---
+ * --- 绑定指针缩放/拖动，只需绑定到 pointerdown、或 wheel 事件（也可同时绑定）上，其他事件自动绑定并在结束后自动移除 ---
  * @param oe 触发的 PointerEvent 事件
  * @param handler 回调函数
  */
