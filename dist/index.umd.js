@@ -18,6 +18,12 @@
             ? (dy < 0 ? 'top' : 'bottom')
             : (dx < 0 ? 'left' : 'right');
     }
+    function getWindow(e) {
+        if (e instanceof PointerEvent) {
+            return e.view ?? window;
+        }
+        return e.ownerDocument.defaultView ?? window;
+    }
     const DISABLED_REGEX = /disabled/i;
     function isDisabled(el) {
         while (el) {
@@ -54,6 +60,7 @@
         if (!el) {
             return;
         }
+        const win = getWindow(oe);
         if (isTouch(oe)) {
             if (el.dataset.pointerHover) {
                 return;
@@ -67,14 +74,14 @@
                 opt.leave?.(e);
                 delete el.dataset.pointerHover;
                 el.removeEventListener('pointerleave', leave);
-                window.removeEventListener('pointermove', move);
-                window.removeEventListener('pointerup', leave);
-                window.removeEventListener('pointercancel', leave);
+                win.removeEventListener('pointermove', move);
+                win.removeEventListener('pointerup', leave);
+                win.removeEventListener('pointercancel', leave);
             };
             el.addEventListener('pointerleave', leave);
-            window.addEventListener('pointermove', move);
-            window.addEventListener('pointerup', leave);
-            window.addEventListener('pointercancel', leave);
+            win.addEventListener('pointermove', move);
+            win.addEventListener('pointerup', leave);
+            win.addEventListener('pointercancel', leave);
         }
         else {
             if (oe.type === 'pointerdown') {
@@ -86,21 +93,23 @@
             };
             const leave = function (e) {
                 opt.leave?.(e);
-                window.removeEventListener('pointermove', move);
+                win.removeEventListener('pointermove', move);
                 el.removeEventListener('pointerleave', leave);
             };
-            window.addEventListener('pointermove', move);
+            win.addEventListener('pointermove', move);
             el.addEventListener('pointerleave', leave);
         }
     }
 
     function down(oe, opt) {
         const target = oe.target;
+        const win = getWindow(oe);
         let { 'x': ox, 'y': oy } = getEventPos(oe);
         let isStart = false;
         let end = undefined;
         const move = function (e) {
-            if ((!e.target || !document.body.contains(e.target)) && e.cancelable) {
+            if ((!e.target || !e.target.ownerDocument.body.contains(e.target))
+                && e.cancelable) {
                 e.preventDefault();
             }
             const { x, y } = getEventPos(e);
@@ -113,31 +122,31 @@
             if (!isStart) {
                 isStart = true;
                 if (opt.start?.(e) === false) {
-                    window.removeEventListener('pointermove', move);
-                    window.removeEventListener('pointerup', end);
-                    window.removeEventListener('pointercancel', end);
+                    win.removeEventListener('pointermove', move);
+                    win.removeEventListener('pointerup', end);
+                    win.removeEventListener('pointercancel', end);
                     return;
                 }
             }
             if (opt.move?.(e, dir) === false) {
-                window.removeEventListener('pointermove', move);
-                window.removeEventListener('pointerup', end);
-                window.removeEventListener('pointercancel', end);
+                win.removeEventListener('pointermove', move);
+                win.removeEventListener('pointerup', end);
+                win.removeEventListener('pointercancel', end);
             }
         };
         end = function (e) {
-            window.removeEventListener('pointermove', move);
-            window.removeEventListener('pointerup', end);
-            window.removeEventListener('pointercancel', end);
+            win.removeEventListener('pointermove', move);
+            win.removeEventListener('pointerup', end);
+            win.removeEventListener('pointercancel', end);
             opt.up?.(e);
             if (isStart) {
                 opt.end?.(e);
             }
         };
         target?.setPointerCapture?.(oe.pointerId);
-        window.addEventListener('pointermove', move, { 'passive': false });
-        window.addEventListener('pointerup', end);
-        window.addEventListener('pointercancel', end);
+        win.addEventListener('pointermove', move, { 'passive': false });
+        win.addEventListener('pointerup', end);
+        win.addEventListener('pointercancel', end);
         opt.down?.(oe);
     }
 
@@ -214,6 +223,7 @@
         set(opt.cursor ?? getComputedStyle(e.target).cursor);
         let { x: tx, y: ty } = getEventPos(e);
         let left, top, right, bottom;
+        const win = getWindow(e);
         if (opt.areaObject) {
             const areaRect = opt.areaObject.getBoundingClientRect();
             const s = getComputedStyle(opt.areaObject);
@@ -225,8 +235,8 @@
         else {
             left = opt.left ?? 0;
             top = opt.top ?? 0;
-            right = opt.right ?? window.innerWidth;
-            bottom = opt.bottom ?? window.innerHeight;
+            right = opt.right ?? win.innerWidth;
+            bottom = opt.bottom ?? win.innerHeight;
         }
         left += opt.offsetLeft ?? 0;
         top += opt.offsetTop ?? 0;
@@ -408,15 +418,16 @@
         if (!el) {
             return;
         }
+        const win = getWindow(oe);
         if (isTouch(oe)) {
             const contextMenuHandler = (e) => {
                 e.preventDefault();
             };
-            window.addEventListener('contextmenu', contextMenuHandler);
+            win.addEventListener('contextmenu', contextMenuHandler);
             long(oe, handler, {
                 up: async () => {
                     await sleep(34);
-                    window.removeEventListener('contextmenu', contextMenuHandler);
+                    win.removeEventListener('contextmenu', contextMenuHandler);
                 }
             });
             return;
@@ -431,10 +442,10 @@
         down(oe, {
             up: async () => {
                 await sleep(34);
-                window.removeEventListener('contextmenu', contextMenuHandler);
+                win.removeEventListener('contextmenu', contextMenuHandler);
             }
         });
-        window.addEventListener('contextmenu', contextMenuHandler);
+        win.addEventListener('contextmenu', contextMenuHandler);
     }
 
     function resize(e, opt) {
@@ -641,6 +652,7 @@
                 }
             }
         };
+        const win = getWindow(oe);
         const up = (e) => {
             state.pointers.delete(e.pointerId);
             if (state.pointers.size === 1) {
@@ -649,10 +661,10 @@
                 state.lastSinglePos = { 'x': pts[0].x, 'y': pts[0].y };
             }
             if (state.pointers.size === 0) {
-                window.removeEventListener('pointermove', move);
-                window.removeEventListener('pointerup', up);
-                window.removeEventListener('pointercancel', up);
-                window.removeEventListener('pointerdown', down);
+                win.removeEventListener('pointermove', move);
+                win.removeEventListener('pointerup', up);
+                win.removeEventListener('pointercancel', up);
+                win.removeEventListener('pointerdown', down);
             }
         };
         down = (e) => {
@@ -665,10 +677,10 @@
             }
         };
         target.setPointerCapture?.(oe.pointerId);
-        window.addEventListener('pointermove', move, { 'passive': false });
-        window.addEventListener('pointerup', up);
-        window.addEventListener('pointercancel', up);
-        window.addEventListener('pointerdown', down);
+        win.addEventListener('pointermove', move, { 'passive': false });
+        win.addEventListener('pointerup', up);
+        win.addEventListener('pointercancel', up);
+        win.addEventListener('pointerdown', down);
     }
 
     const gestureWheel = {

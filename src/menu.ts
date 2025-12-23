@@ -30,18 +30,19 @@ export function menu(oe: PointerEvent, handler: types.TMenuHandler): void {
     if (!el) {
         return;
     }
+    const win = utils.getWindow(oe);
     // --- 鼠标动态绑定 contextmenu 事件触发 ---
     if (utils.isTouch(oe)) {
         // --- 触摸设备使用 long 库长按触发 ---
         const contextMenuHandler = (e: MouseEvent): void => {
             e.preventDefault();
         };
-        window.addEventListener('contextmenu', contextMenuHandler);
+        win.addEventListener('contextmenu', contextMenuHandler);
         long(oe, handler, {
             up: async () => {
                 // --- 必须等待一下，因为本次 up 可能就是被 contextmenu 中断导致触发的 ---
                 await utils.sleep(34);
-                window.removeEventListener('contextmenu', contextMenuHandler);
+                win.removeEventListener('contextmenu', contextMenuHandler);
             }
         });
         return;
@@ -58,8 +59,8 @@ export function menu(oe: PointerEvent, handler: types.TMenuHandler): void {
         up: async () => {
             // --- 必须等待一下，因为本次 up 可能就是被 contextmenu 中断导致触发的 ---
             await utils.sleep(34);
-            window.removeEventListener('contextmenu', contextMenuHandler);
+            win.removeEventListener('contextmenu', contextMenuHandler);
         }
     });
-    window.addEventListener('contextmenu', contextMenuHandler);
+    win.addEventListener('contextmenu', contextMenuHandler);
 }

@@ -15,6 +15,7 @@
  */
 
 import * as types from './types';
+import * as utils from './utils';
 
 /** --- 多指针追踪数据 --- */
 interface IPointerData {
@@ -112,6 +113,8 @@ export function scale(oe: PointerEvent | WheelEvent, handler: types.TScaleHandle
         }
     };
 
+    const win = utils.getWindow(oe);
+
     const up = (e: PointerEvent): void => {
         state.pointers.delete(e.pointerId);
         if (state.pointers.size === 1) {
@@ -122,10 +125,10 @@ export function scale(oe: PointerEvent | WheelEvent, handler: types.TScaleHandle
         }
         if (state.pointers.size === 0) {
             // --- 所有指针都释放，移除事件监听 ---
-            window.removeEventListener('pointermove', move);
-            window.removeEventListener('pointerup', up);
-            window.removeEventListener('pointercancel', up);
-            window.removeEventListener('pointerdown', down as EventListener);
+            win.removeEventListener('pointermove', move);
+            win.removeEventListener('pointerup', up);
+            win.removeEventListener('pointercancel', up);
+            win.removeEventListener('pointerdown', down as EventListener);
         }
     };
 
@@ -144,8 +147,8 @@ export function scale(oe: PointerEvent | WheelEvent, handler: types.TScaleHandle
     // --- 捕获当前指针 ---
     target.setPointerCapture?.(oe.pointerId);
     // --- 绑定事件 ---
-    window.addEventListener('pointermove', move, { 'passive': false });
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
-    window.addEventListener('pointerdown', down);
+    win.addEventListener('pointermove', move, { 'passive': false });
+    win.addEventListener('pointerup', up);
+    win.addEventListener('pointercancel', up);
+    win.addEventListener('pointerdown', down);
 }

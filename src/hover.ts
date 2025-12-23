@@ -27,6 +27,7 @@ export function hover(oe: PointerEvent, opt: types.IHoverOptions): void {
     if (!el) {
         return;
     }
+    const win = utils.getWindow(oe);
 
     if (utils.isTouch(oe)) {
         // --- down、enter 都视为 enter 事件 ---
@@ -43,18 +44,18 @@ export function hover(oe: PointerEvent, opt: types.IHoverOptions): void {
             opt.leave?.(e) as any;
             delete el.dataset.pointerHover;
             el.removeEventListener('pointerleave', leave);
-            window.removeEventListener('pointermove', move);
-            window.removeEventListener('pointerup', leave);
-            window.removeEventListener('pointercancel', leave);
+            win.removeEventListener('pointermove', move);
+            win.removeEventListener('pointerup', leave);
+            win.removeEventListener('pointercancel', leave);
         };
         // --- 绑定事件 ---
         el.addEventListener('pointerleave', leave);
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', leave);
-        window.addEventListener('pointercancel', leave);
+        win.addEventListener('pointermove', move);
+        win.addEventListener('pointerup', leave);
+        win.addEventListener('pointercancel', leave);
     }
     else {
-        // --- down 不能处理 ---
+        // --- down 不能 handle ---
         if (oe.type === 'pointerdown') {
             return;
         }
@@ -64,10 +65,10 @@ export function hover(oe: PointerEvent, opt: types.IHoverOptions): void {
         };
         const leave = function(e: PointerEvent): void {
             opt.leave?.(e) as any;
-            window.removeEventListener('pointermove', move);
+            win.removeEventListener('pointermove', move);
             el.removeEventListener('pointerleave', leave);
         };
-        window.addEventListener('pointermove', move);
+        win.addEventListener('pointermove', move);
         el.addEventListener('pointerleave', leave);
     }
 }

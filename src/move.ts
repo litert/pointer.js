@@ -178,6 +178,7 @@ export function move(e: PointerEvent, opt: types.IMoveOptions): types.IMoveResul
 
     // --- 计算边界 ---
     let left: number, top: number, right: number, bottom: number;
+    const win = utils.getWindow(e);
     if (opt.areaObject) {
         const areaRect = opt.areaObject.getBoundingClientRect();
         const s = getComputedStyle(opt.areaObject);
@@ -189,8 +190,8 @@ export function move(e: PointerEvent, opt: types.IMoveOptions): types.IMoveResul
     else {
         left = opt.left ?? 0;
         top = opt.top ?? 0;
-        right = opt.right ?? window.innerWidth;
-        bottom = opt.bottom ?? window.innerHeight;
+        right = opt.right ?? win.innerWidth;
+        bottom = opt.bottom ?? win.innerHeight;
     }
     left += opt.offsetLeft ?? 0;
     top += opt.offsetTop ?? 0;

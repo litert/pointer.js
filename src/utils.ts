@@ -54,6 +54,19 @@ export function getMoveDir(dx: number, dy: number): types.TDirection {
         : (dx < 0 ? 'left' : 'right');
 }
 
+/**
+ * --- 获取事件或元素所属的 window 对象 ---
+ * @param e 事件或元素
+ */
+export function getWindow(e: PointerEvent | HTMLElement): Window {
+    // --- 优先判断 view 属性 (PointerEvent) ---
+    if (e instanceof PointerEvent) {
+        return e.view ?? window;
+    }
+    // --- 其次判断 ownerDocument (HTMLElement) ---
+    return e.ownerDocument.defaultView ?? window;
+}
+
 // ----------------------
 // ------- DOM 工具 ------
 // ----------------------
