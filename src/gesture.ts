@@ -202,9 +202,10 @@ export function gesture(
             let offset = Math.min(90, gestureWheel.offset / 1.38);
             g.classList.toggle('pointer-gesture-done', offset >= 90);
             updateGestureStyle(rect, gestureWheel.dir, offset);
-            clearTimeout(gestureWheel.timer);
+            const win = utils.getWindow(oe as any);
+            win.clearTimeout(gestureWheel.timer);
             if (offset < 90) {
-                gestureWheel.timer = window.setTimeout(() => {
+                gestureWheel.timer = win.setTimeout(() => {
                     g.style.opacity = '0';
                     g.classList.remove('pointer-gesture-ani');
                 }, 250);

@@ -1,5 +1,5 @@
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+function sleep(ms, win = window) {
+    return new Promise(resolve => win.setTimeout(resolve, ms));
 }
 function isTouch(e) {
     return e.pointerType === 'touch';
@@ -13,10 +13,13 @@ function getMoveDir(dx, dy) {
         : (dx < 0 ? 'left' : 'right');
 }
 function getWindow(e) {
-    if (e instanceof PointerEvent) {
-        return e.view ?? window;
+    if (('view' in e) && e.view) {
+        return e.view;
     }
-    return e.ownerDocument.defaultView ?? window;
+    if ('ownerDocument' in e && e.ownerDocument) {
+        return e.ownerDocument.defaultView ?? window;
+    }
+    return window;
 }
 const DISABLED_REGEX = /disabled/i;
 function isDisabled(el) {
@@ -368,8 +371,9 @@ function dblClick(e, handler) {
 let lastLongTime = 0;
 function long(e, long, opt) {
     const { 'x': tx, 'y': ty, } = getEventPos(e);
+    const win = getWindow(e);
     let ox = 0, oy = 0, isLong = false;
-    let timer = window.setTimeout(() => {
+    let timer = win.setTimeout(() => {
         timer = undefined;
         if (ox <= 1 && oy <= 1) {
             isLong = true;
@@ -386,7 +390,7 @@ function long(e, long, opt) {
         up: () => {
             opt?.up?.(e);
             if (timer !== undefined) {
-                clearTimeout(timer);
+                win.clearTimeout(timer);
                 timer = undefined;
             }
             else if (isLong) {
@@ -408,10 +412,6 @@ function allowEvent(e) {
 }
 
 function menu(oe, handler) {
-    const el = oe.currentTarget;
-    if (!el) {
-        return;
-    }
     const win = getWindow(oe);
     if (isTouch(oe)) {
         const contextMenuHandler = (e) => {
@@ -420,7 +420,7 @@ function menu(oe, handler) {
         win.addEventListener('contextmenu', contextMenuHandler);
         long(oe, handler, {
             up: async () => {
-                await sleep(34);
+                await sleep(34, win);
                 win.removeEventListener('contextmenu', contextMenuHandler);
             }
         });
@@ -435,7 +435,7 @@ function menu(oe, handler) {
     };
     down(oe, {
         up: async () => {
-            await sleep(34);
+            await sleep(34, win);
             win.removeEventListener('contextmenu', contextMenuHandler);
         }
     });
@@ -830,9 +830,10 @@ function gesture(oe, before, handler) {
             let offset = Math.min(90, gestureWheel.offset / 1.38);
             g.classList.toggle('pointer-gesture-done', offset >= 90);
             updateGestureStyle(rect, gestureWheel.dir, offset);
-            clearTimeout(gestureWheel.timer);
+            const win = getWindow(oe);
+            win.clearTimeout(gestureWheel.timer);
             if (offset < 90) {
-                gestureWheel.timer = window.setTimeout(() => {
+                gestureWheel.timer = win.setTimeout(() => {
                     g.style.opacity = '0';
                     g.classList.remove('pointer-gesture-ani');
                 }, 250);

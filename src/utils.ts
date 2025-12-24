@@ -22,9 +22,11 @@ import * as types from './types';
 
 /**
  * --- 简单的 sleep 工具函数 ---
+ * @param ms 毫秒数
+ * @param win 可选的 window 对象，默认为当前 window
  */
-export function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+export function sleep(ms: number, win: Window = window): Promise<void> {
+    return new Promise(resolve => win.setTimeout(resolve, ms));
 }
 
 /**
@@ -60,11 +62,15 @@ export function getMoveDir(dx: number, dy: number): types.TDirection {
  */
 export function getWindow(e: PointerEvent | HTMLElement): Window {
     // --- 优先判断 view 属性 (PointerEvent) ---
-    if (e instanceof PointerEvent) {
-        return e.view ?? window;
+    // if (e instanceof PointerEvent) { // --- 不能用 instanceof，因为可能跨 iframe ---
+    if (('view' in e) && e.view) {
+        return e.view;
     }
     // --- 其次判断 ownerDocument (HTMLElement) ---
-    return e.ownerDocument.defaultView ?? window;
+    if ('ownerDocument' in e && e.ownerDocument) {
+        return e.ownerDocument.defaultView ?? window;
+    }
+    return window;
 }
 
 // ----------------------

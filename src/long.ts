@@ -28,8 +28,9 @@ let lastLongTime: number = 0;
  */
 export function long(e: PointerEvent, long: (e: PointerEvent) => void | Promise<void>, opt?: types.ILongOptions): void {
     const { 'x': tx, 'y': ty, } = utils.getEventPos(e);
+    const win = utils.getWindow(e);
     let ox = 0, oy = 0, isLong = false;
-    let timer: number | undefined = window.setTimeout(() => {
+    let timer: number | undefined = win.setTimeout(() => {
         timer = undefined;
         if (ox <= 1 && oy <= 1) {
             isLong = true;
@@ -46,7 +47,7 @@ export function long(e: PointerEvent, long: (e: PointerEvent) => void | Promise<
         up: () => {
             opt?.up?.(e) as any;
             if (timer !== undefined) {
-                clearTimeout(timer);
+                win.clearTimeout(timer);
                 timer = undefined;
             }
             else if (isLong) {

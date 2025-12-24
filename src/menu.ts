@@ -26,10 +26,6 @@ import { down } from './down';
  * @param handler 回调函数
  */
 export function menu(oe: PointerEvent, handler: types.TMenuHandler): void {
-    const el = oe.currentTarget as HTMLElement | null;
-    if (!el) {
-        return;
-    }
     const win = utils.getWindow(oe);
     // --- 鼠标动态绑定 contextmenu 事件触发 ---
     if (utils.isTouch(oe)) {
@@ -41,7 +37,7 @@ export function menu(oe: PointerEvent, handler: types.TMenuHandler): void {
         long(oe, handler, {
             up: async () => {
                 // --- 必须等待一下，因为本次 up 可能就是被 contextmenu 中断导致触发的 ---
-                await utils.sleep(34);
+                await utils.sleep(34, win);
                 win.removeEventListener('contextmenu', contextMenuHandler);
             }
         });
@@ -58,7 +54,7 @@ export function menu(oe: PointerEvent, handler: types.TMenuHandler): void {
     down(oe, {
         up: async () => {
             // --- 必须等待一下，因为本次 up 可能就是被 contextmenu 中断导致触发的 ---
-            await utils.sleep(34);
+            await utils.sleep(34, win);
             win.removeEventListener('contextmenu', contextMenuHandler);
         }
     });
