@@ -21,11 +21,12 @@ import { down } from './down';
 
 /**
  * --- 右键菜单事件，电脑触发 contextmenu、手机触发长按 ---
- * --- 绑定在 pointerdown 事件中，会自动阻断默认的菜单 ---
- * @param oe PointerEvent
+ * --- 绑定在 pointerdown 事件上，会自动阻断默认的菜单 ---
+ * --- 实在不行才绑定到 mousedown 事件上，但不要同时绑定 mouse 和 pointer ---
+ * @param oe PointerEvent | MouseEvent
  * @param handler 回调函数
  */
-export function menu(oe: PointerEvent, handler: types.TMenuHandler): void {
+export function menu(oe: PointerEvent | MouseEvent, handler: types.TMenuHandler): void {
     const win = utils.getWindow(oe);
     // --- 鼠标动态绑定 contextmenu 事件触发 ---
     if (utils.isTouch(oe)) {

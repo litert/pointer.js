@@ -33,7 +33,10 @@ export function sleep(ms: number, win: Window = window): Promise<void> {
  * --- 判断当前是否是触摸指针类型 ---
  * @param e 事件对象
  */
-export function isTouch(e: PointerEvent): boolean {
+export function isTouch(e: PointerEvent | MouseEvent): boolean {
+    if (!(e instanceof PointerEvent)) {
+        return false;
+    }
     return e.pointerType === 'touch';
 }
 
@@ -41,7 +44,7 @@ export function isTouch(e: PointerEvent): boolean {
  * --- 从事件中获取坐标 ---
  * @param e 事件对象
  */
-export function getEventPos(e: PointerEvent): { 'x': number; 'y': number; } {
+export function getEventPos(e: PointerEvent | MouseEvent): { 'x': number; 'y': number; } {
     return { 'x': e.clientX, 'y': e.clientY };
 }
 
@@ -60,7 +63,7 @@ export function getMoveDir(dx: number, dy: number): types.TDirection {
  * --- 获取事件或元素所属的 window 对象 ---
  * @param e 事件或元素
  */
-export function getWindow(e: PointerEvent | HTMLElement): Window {
+export function getWindow(e: PointerEvent | MouseEvent | HTMLElement): Window {
     // --- 优先判断 view 属性 (PointerEvent) ---
     // if (e instanceof PointerEvent) { // --- 不能用 instanceof，因为可能跨 iframe ---
     if (('view' in e) && e.view) {

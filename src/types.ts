@@ -32,22 +32,22 @@ export interface IHoverOptions {
 }
 
 /** --- down 选项 --- */
-export interface IDownOptions {
-    down?: (e: PointerEvent) => void | Promise<void>;
-    start?: (e: PointerEvent) => any;
-    move?: (e: PointerEvent, dir: TDirection) => any;
+export interface IDownOptions<T extends PointerEvent | MouseEvent> {
+    down?: (e: T) => void | Promise<void>;
+    start?: (e: T) => any;
+    move?: (e: T, dir: TDirection) => any;
     /** --- 必有 up（包括 cancel） --- */
-    up?: (e: PointerEvent) => void | Promise<void>;
+    up?: (e: T) => void | Promise<void>;
     /** --- 有 start 才有 end --- */
-    end?: (e: PointerEvent) => void | Promise<void>;
+    end?: (e: T) => void | Promise<void>;
 }
 
 /** --- long 选项 --- */
-export interface ILongOptions {
+export interface ILongOptions<T extends PointerEvent | MouseEvent> {
     /** --- 长按时间，默认 300 ms --- */
     'time'?: number;
-    down?: (e: PointerEvent) => void | Promise<void>;
-    up?: (e: PointerEvent) => void | Promise<void>;
+    down?: (e: T) => void | Promise<void>;
+    up?: (e: T) => void | Promise<void>;
 }
 
 /** --- move 回调参数 --- */

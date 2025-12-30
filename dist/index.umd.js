@@ -8,6 +8,9 @@
         return new Promise(resolve => win.setTimeout(resolve, ms));
     }
     function isTouch(e) {
+        if (!(e instanceof PointerEvent)) {
+            return false;
+        }
         return e.pointerType === 'touch';
     }
     function getEventPos(e) {
@@ -109,6 +112,7 @@
         const win = getWindow(oe);
         let { 'x': ox, 'y': oy } = getEventPos(oe);
         let isStart = false;
+        const isPointer = oe instanceof PointerEvent;
         let end = undefined;
         const move = function (e) {
             if ((!e.target || !e.target.ownerDocument.body.contains(e.target))
@@ -125,31 +129,55 @@
             if (!isStart) {
                 isStart = true;
                 if (opt.start?.(e) === false) {
-                    win.removeEventListener('pointermove', move);
-                    win.removeEventListener('pointerup', end);
-                    win.removeEventListener('pointercancel', end);
+                    if (isPointer) {
+                        win.removeEventListener('pointermove', move);
+                        win.removeEventListener('pointerup', end);
+                        win.removeEventListener('pointercancel', end);
+                    }
+                    else {
+                        win.removeEventListener('mousemove', move);
+                        win.removeEventListener('mouseup', end);
+                    }
                     return;
                 }
             }
             if (opt.move?.(e, dir) === false) {
+                if (isPointer) {
+                    win.removeEventListener('pointermove', move);
+                    win.removeEventListener('pointerup', end);
+                    win.removeEventListener('pointercancel', end);
+                }
+                else {
+                    win.removeEventListener('mousemove', move);
+                    win.removeEventListener('mouseup', end);
+                }
+            }
+        };
+        end = function (e) {
+            if (isPointer) {
                 win.removeEventListener('pointermove', move);
                 win.removeEventListener('pointerup', end);
                 win.removeEventListener('pointercancel', end);
             }
-        };
-        end = function (e) {
-            win.removeEventListener('pointermove', move);
-            win.removeEventListener('pointerup', end);
-            win.removeEventListener('pointercancel', end);
+            else {
+                win.removeEventListener('mousemove', move);
+                win.removeEventListener('mouseup', end);
+            }
             opt.up?.(e);
             if (isStart) {
                 opt.end?.(e);
             }
         };
-        target?.setPointerCapture?.(oe.pointerId);
-        win.addEventListener('pointermove', move, { 'passive': false });
-        win.addEventListener('pointerup', end);
-        win.addEventListener('pointercancel', end);
+        if (isPointer) {
+            target?.setPointerCapture?.(oe.pointerId);
+            win.addEventListener('pointermove', move, { 'passive': false });
+            win.addEventListener('pointerup', end);
+            win.addEventListener('pointercancel', end);
+        }
+        else {
+            win.addEventListener('mousemove', move, { 'passive': false });
+            win.addEventListener('mouseup', end);
+        }
         opt.down?.(oe);
     }
 
@@ -688,7 +716,6 @@
         'offset': 0,
         'done': false,
         'timer': 0,
-        'firstTimer': false,
         'dir': ''
     };
     const reverseDir = {
@@ -787,70 +814,72 @@
             });
         }
         else {
-            (async () => {
-                const now = Date.now();
-                if (now - gestureWheel.last > 250) {
-                    gestureWheel.offset = 0;
-                    gestureWheel.done = false;
-                    gestureWheel.timer = 0;
-                    gestureWheel.firstTimer = false;
-                    gestureWheel.dir = '';
-                }
-                gestureWheel.last = now;
-                if (gestureWheel.firstTimer || gestureWheel.done) {
-                    return;
-                }
-                let deltaY = oe.deltaY, deltaX = oe.deltaX;
-                if (gestureWheel.dir === '') {
-                    gestureWheel.dir = getMoveDir(deltaX, deltaY);
-                    const rtn = before(oe, gestureWheel.dir);
-                    if (rtn === 1) {
-                        oe.stopPropagation();
+            const now = Date.now();
+            if (now - gestureWheel.last > 250) {
+                gestureWheel.offset = 0;
+                gestureWheel.done = false;
+                gestureWheel.timer = 0;
+                gestureWheel.dir = '';
+            }
+            gestureWheel.last = now;
+            if (gestureWheel.dir !== '' && oe.cancelable) {
+                oe.stopPropagation();
+                oe.preventDefault();
+            }
+            if (gestureWheel.done) {
+                return;
+            }
+            let deltaY = oe.deltaY, deltaX = oe.deltaX;
+            if (gestureWheel.dir === '') {
+                gestureWheel.dir = getMoveDir(deltaX, deltaY);
+                const rtn = before(oe, gestureWheel.dir);
+                if (rtn === 1) {
+                    oe.stopPropagation();
+                    if (oe.cancelable) {
                         oe.preventDefault();
                     }
-                    else {
-                        if (rtn === -1) {
-                            oe.stopPropagation();
-                            gestureWheel.done = true;
-                        }
-                        else {
-                            gestureWheel.dir = '';
-                        }
-                        return;
+                }
+                else {
+                    if (rtn === -1) {
+                        oe.stopPropagation();
+                        gestureWheel.done = true;
                     }
-                    updateGestureStyle(rect, gestureWheel.dir, 0, true);
-                    gestureWheel.firstTimer = true;
-                    await sleep(30);
-                    gestureWheel.firstTimer = false;
-                    g.classList.add('pointer-gesture-ani');
+                    else {
+                        gestureWheel.dir = '';
+                    }
+                    return;
                 }
-                const isVertical = gestureWheel.dir === 'top' || gestureWheel.dir === 'bottom';
-                const delta = isVertical ? deltaY : deltaX;
-                gestureWheel.offset += (gestureWheel.dir === 'top' || gestureWheel.dir === 'left') ? -delta : delta;
-                if (gestureWheel.offset < 0) {
-                    gestureWheel.offset = 0;
+                updateGestureStyle(rect, gestureWheel.dir, 0, true);
+                void g.offsetWidth;
+                g.classList.add('pointer-gesture-ani');
+            }
+            const isVertical = gestureWheel.dir === 'top' || gestureWheel.dir === 'bottom';
+            const delta = isVertical ? deltaY : deltaX;
+            gestureWheel.offset += (gestureWheel.dir === 'top' || gestureWheel.dir === 'left') ? -delta : delta;
+            if (gestureWheel.offset < 0) {
+                gestureWheel.offset = 0;
+                g.style.opacity = '0';
+                return;
+            }
+            g.style.opacity = '1';
+            let offset = Math.min(90, gestureWheel.offset / 1.38);
+            g.classList.toggle('pointer-gesture-done', offset >= 90);
+            updateGestureStyle(rect, gestureWheel.dir, offset);
+            const win = getWindow(oe);
+            win.clearTimeout(gestureWheel.timer);
+            if (offset < 90) {
+                gestureWheel.timer = win.setTimeout(() => {
                     g.style.opacity = '0';
-                    return;
-                }
-                g.style.opacity = '1';
-                let offset = Math.min(90, gestureWheel.offset / 1.38);
-                g.classList.toggle('pointer-gesture-done', offset >= 90);
-                updateGestureStyle(rect, gestureWheel.dir, offset);
-                const win = getWindow(oe);
-                win.clearTimeout(gestureWheel.timer);
-                if (offset < 90) {
-                    gestureWheel.timer = win.setTimeout(() => {
-                        g.style.opacity = '0';
-                        g.classList.remove('pointer-gesture-ani');
-                    }, 250);
-                    return;
-                }
-                gestureWheel.done = true;
-                handler?.(gestureWheel.dir);
-                await sleep(500);
+                    g.classList.remove('pointer-gesture-ani');
+                }, 250);
+                return;
+            }
+            gestureWheel.done = true;
+            handler?.(gestureWheel.dir);
+            sleep(500).then(() => {
                 g.style.opacity = '0';
                 g.classList.remove('pointer-gesture-ani');
-            })().catch(() => { });
+            }).catch(() => { });
         }
     }
 

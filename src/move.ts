@@ -130,7 +130,7 @@ function clampToBorder(
  * @param top 边界顶部位置
  * @param right 边界右侧位置
  * @param bottom 边界底部位置
- * @returns 返回边界类型，如 'lt'(左上), 'tr'(右上), 't'(上), 'r'(右), 'rb'(右下), 'b'(下), 'bl'(左下), 'l'(左), ''(不在边界)
+ * @returns 返回边界类型，如 'lt' (左上), 'tr' (右上), 't' (上), 'r' (右), 'rb' (右下), 'b' (下), 'bl' (左下), 'l' (左), '' (不在边界)
  */
 function calcBorderType(
     inTop: boolean, inRight: boolean, inBottom: boolean, inLeft: boolean,

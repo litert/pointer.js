@@ -20,11 +20,15 @@ import { down } from './down';
 
 /** --- 绑定拖拉响应操作的 wheel 数据对象 --- */
 const gestureWheel = {
+    /** --- 最后一次触发的时间 --- */
     'last': 0,
+    /** --- 当前偏移量 --- */
     'offset': 0,
+    /** --- 是否已完成手势 --- */
     'done': false,
+    /** --- 自动隐藏的计时器 ID --- */
     'timer': 0,
-    'firstTimer': false,
+    /** --- 拖拉方向 --- */
     'dir': '' as ('' | types.TDirection)
 };
 
@@ -55,6 +59,10 @@ function getGestureEl(): HTMLElement {
 
 /**
  * --- 更新 gesture 元素位置和样式 ---
+ * @param rect 目标元素的矩形区域
+ * @param dir 手势方向
+ * @param offset 偏移量
+ * @param isInit 是否为初始化
  */
 function updateGestureStyle(
     rect: DOMRect,
@@ -83,7 +91,7 @@ function updateGestureStyle(
 /**
  * --- 绑定上拉、下拉、左拉、右拉手势 ---
  * @param oe 响应事件
- * @param before before 事件，返回 1 则显示 gesture，0 则不处理（可能会向上传递事件），-1 则 stopPropagation（本层可拖动，若实际不可拖动则可能导致浏览器页面滚动）
+ * @param before before 事件，返回 1 则显示 gesture ，0 则不处理（可能会向上传递事件），-1 则 stopPropagation （本层可拖动，若实际不可拖动则可能导致浏览器页面滚动）
  * @param handler 执行完毕的话才会回调
  */
 export function gesture(
@@ -153,69 +161,73 @@ export function gesture(
     }
     else {
         // --- wheel 触发 ---
-        (async () => {
-            const now = Date.now();
-            if (now - gestureWheel.last > 250) {
-                gestureWheel.offset = 0;
-                gestureWheel.done = false;
-                gestureWheel.timer = 0;
-                gestureWheel.firstTimer = false;
-                gestureWheel.dir = '';
-            }
-            gestureWheel.last = now;
-            if (gestureWheel.firstTimer || gestureWheel.done) {
-                return;
-            }
-            let deltaY = oe.deltaY, deltaX = oe.deltaX;
-            if (gestureWheel.dir === '') {
-                gestureWheel.dir = utils.getMoveDir(deltaX, deltaY);
-                const rtn = before(oe, gestureWheel.dir);
-                if (rtn === 1) {
-                    oe.stopPropagation();
+        const now = Date.now();
+        if (now - gestureWheel.last > 250) {
+            gestureWheel.offset = 0;
+            gestureWheel.done = false;
+            gestureWheel.timer = 0;
+            gestureWheel.dir = '';
+        }
+        gestureWheel.last = now;
+        if (gestureWheel.dir !== '' && oe.cancelable) {
+            oe.stopPropagation();
+            oe.preventDefault();
+        }
+        if (gestureWheel.done) {
+            return;
+        }
+        let deltaY = oe.deltaY, deltaX = oe.deltaX;
+        if (gestureWheel.dir === '') {
+            gestureWheel.dir = utils.getMoveDir(deltaX, deltaY);
+            const rtn = before(oe, gestureWheel.dir);
+            if (rtn === 1) {
+                // --- 才滚 ---
+                oe.stopPropagation();
+                if (oe.cancelable) {
                     oe.preventDefault();
                 }
-                else {
-                    if (rtn === -1) {
-                        oe.stopPropagation();
-                        gestureWheel.done = true;
-                    }
-                    else {
-                        gestureWheel.dir = '';
-                    }
-                    return;
+            }
+            else {
+                if (rtn === -1) {
+                    oe.stopPropagation();
+                    gestureWheel.done = true;
                 }
-                updateGestureStyle(rect, gestureWheel.dir, 0, true);
-                gestureWheel.firstTimer = true;
-                await utils.sleep(30);
-                gestureWheel.firstTimer = false;
-                g.classList.add('pointer-gesture-ani');
+                else {
+                    gestureWheel.dir = '';
+                }
+                return;
             }
-            const isVertical = gestureWheel.dir === 'top' || gestureWheel.dir === 'bottom';
-            const delta = isVertical ? deltaY : deltaX;
-            gestureWheel.offset += (gestureWheel.dir === 'top' || gestureWheel.dir === 'left') ? -delta : delta;
-            if (gestureWheel.offset < 0) {
-                gestureWheel.offset = 0;
+            updateGestureStyle(rect, gestureWheel.dir, 0, true);
+            // --- 强制重绘，让初始位置生效，否则会直接跳到 offset 位置 ---
+            void g.offsetWidth;
+            g.classList.add('pointer-gesture-ani');
+        }
+        const isVertical = gestureWheel.dir === 'top' || gestureWheel.dir === 'bottom';
+        const delta = isVertical ? deltaY : deltaX;
+        gestureWheel.offset += (gestureWheel.dir === 'top' || gestureWheel.dir === 'left') ? -delta : delta;
+        if (gestureWheel.offset < 0) {
+            gestureWheel.offset = 0;
+            g.style.opacity = '0';
+            return;
+        }
+        g.style.opacity = '1';
+        let offset = Math.min(90, gestureWheel.offset / 1.38);
+        g.classList.toggle('pointer-gesture-done', offset >= 90);
+        updateGestureStyle(rect, gestureWheel.dir, offset);
+        const win = utils.getWindow(oe as any);
+        win.clearTimeout(gestureWheel.timer);
+        if (offset < 90) {
+            gestureWheel.timer = win.setTimeout(() => {
                 g.style.opacity = '0';
-                return;
-            }
-            g.style.opacity = '1';
-            let offset = Math.min(90, gestureWheel.offset / 1.38);
-            g.classList.toggle('pointer-gesture-done', offset >= 90);
-            updateGestureStyle(rect, gestureWheel.dir, offset);
-            const win = utils.getWindow(oe as any);
-            win.clearTimeout(gestureWheel.timer);
-            if (offset < 90) {
-                gestureWheel.timer = win.setTimeout(() => {
-                    g.style.opacity = '0';
-                    g.classList.remove('pointer-gesture-ani');
-                }, 250);
-                return;
-            }
-            gestureWheel.done = true;
-            handler?.(gestureWheel.dir) as any;
-            await utils.sleep(500);
+                g.classList.remove('pointer-gesture-ani');
+            }, 250);
+            return;
+        }
+        gestureWheel.done = true;
+        handler?.(gestureWheel.dir) as any;
+        utils.sleep(500).then(() => {
             g.style.opacity = '0';
             g.classList.remove('pointer-gesture-ani');
-        })().catch(() => {});
+        }).catch(() => {});
     }
 }

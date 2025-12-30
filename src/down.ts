@@ -18,18 +18,21 @@ import * as utils from './utils';
 
 /**
  * --- 绑定按下以及弹起事件 ---
- * @param oe PointerEvent
+ * @param oe PointerEvent，非必要勿绑定 MouseEvent
  * @param opt 回调选项
  */
-export function down(oe: PointerEvent, opt: types.IDownOptions): void {
+export function down<T extends PointerEvent | MouseEvent>(oe: T, opt: types.IDownOptions<T>): void {
     /** --- 目标元素 --- */
     const target = oe.target as HTMLElement;
     const win = utils.getWindow(oe);
     let { 'x': ox, 'y': oy } = utils.getEventPos(oe);
+    /** --- 是否已经触发过 start 事件 --- */
     let isStart = false;
+    /** --- 是否为 PointerEvent --- */
+    const isPointer = oe instanceof PointerEvent;
 
-    let end: ((e: PointerEvent) => void) | undefined = undefined;
-    const move = function(e: PointerEvent): void {
+    let end: ((e: T) => void) | undefined = undefined;
+    const move = function(e: T): void {
         // --- 检查元素是否还在文档中 ---
         if (
             (!e.target || !(e.target as HTMLElement).ownerDocument.body.contains(e.target as HTMLElement))
@@ -47,23 +50,41 @@ export function down(oe: PointerEvent, opt: types.IDownOptions): void {
         if (!isStart) {
             isStart = true;
             if (opt.start?.(e) === false) {
-                win.removeEventListener('pointermove', move);
-                win.removeEventListener('pointerup', end as EventListener);
-                win.removeEventListener('pointercancel', end as EventListener);
+                if (isPointer) {
+                    win.removeEventListener('pointermove', move as EventListener);
+                    win.removeEventListener('pointerup', end as EventListener);
+                    win.removeEventListener('pointercancel', end as EventListener);
+                }
+                else {
+                    win.removeEventListener('mousemove', move as EventListener);
+                    win.removeEventListener('mouseup', end as EventListener);
+                }
                 return;
             }
         }
         if (opt.move?.(e, dir) === false) {
-            win.removeEventListener('pointermove', move);
-            win.removeEventListener('pointerup', end as EventListener);
-            win.removeEventListener('pointercancel', end as EventListener);
+            if (isPointer) {
+                win.removeEventListener('pointermove', move as EventListener);
+                win.removeEventListener('pointerup', end as EventListener);
+                win.removeEventListener('pointercancel', end as EventListener);
+            }
+            else {
+                win.removeEventListener('mousemove', move as EventListener);
+                win.removeEventListener('mouseup', end as EventListener);
+            }
         }
     };
 
-    end = function(e: PointerEvent): void {
-        win.removeEventListener('pointermove', move);
-        win.removeEventListener('pointerup', end as EventListener);
-        win.removeEventListener('pointercancel', end as EventListener);
+    end = function(e: T): void {
+        if (isPointer) {
+            win.removeEventListener('pointermove', move as EventListener);
+            win.removeEventListener('pointerup', end as EventListener);
+            win.removeEventListener('pointercancel', end as EventListener);
+        }
+        else {
+            win.removeEventListener('mousemove', move as EventListener);
+            win.removeEventListener('mouseup', end as EventListener);
+        }
         opt.up?.(e) as any;
         if (isStart) {
             opt.end?.(e) as any;
@@ -71,9 +92,15 @@ export function down(oe: PointerEvent, opt: types.IDownOptions): void {
     };
 
     // --- 捕获指针以确保即使指针离开元素也能接收事件 ---
-    target?.setPointerCapture?.(oe.pointerId);
-    win.addEventListener('pointermove', move, { 'passive': false });
-    win.addEventListener('pointerup', end);
-    win.addEventListener('pointercancel', end);
+    if (isPointer) {
+        target?.setPointerCapture?.(oe.pointerId);
+        win.addEventListener('pointermove', move as EventListener, { 'passive': false });
+        win.addEventListener('pointerup', end as EventListener);
+        win.addEventListener('pointercancel', end as EventListener);
+    }
+    else {
+        win.addEventListener('mousemove', move as EventListener, { 'passive': false });
+        win.addEventListener('mouseup', end as EventListener);
+    }
     opt.down?.(oe) as any;
 }

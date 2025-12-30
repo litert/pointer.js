@@ -734,7 +734,7 @@
             });
         }
         gestureArea.addEventListener('pointerdown', handleGesture);
-        gestureArea.addEventListener('wheel', handleGesture);
+        gestureArea.addEventListener('wheel', handleGesture, { 'passive': false });
 
         // --- menu 演示 ---
         const menuArea = document.getElementById('menu-area');

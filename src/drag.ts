@@ -37,6 +37,8 @@ export function setData(data?: string | number | boolean | Record<string, any>):
 
 /**
  * --- 触发拖拽事件 ---
+ * @param el 目标元素
+ * @param type 事件类型
  */
 function dispatchEvent(el: HTMLElement | null, type: string): void {
     el?.dispatchEvent(new CustomEvent(type, { 'detail': { 'value': bindDragData } }));

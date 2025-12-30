@@ -22,11 +22,15 @@ let lastLongTime: number = 0;
 
 /**
  * --- 绑定长按事件 ---
+ * --- 绑定到 pointerdown 事件 ---
+ * --- 实在不行才绑定到 mousedown 事件上，但不要同时绑定 mouse 和 pointer ---
  * @param e 事件原型
  * @param long 长按回调
  * @param opt 选项
  */
-export function long(e: PointerEvent, long: (e: PointerEvent) => void | Promise<void>, opt?: types.ILongOptions): void {
+export function long<T extends PointerEvent | MouseEvent>(
+    e: T, long: (e: T) => void | Promise<void>, opt?: types.ILongOptions<T>
+): void {
     const { 'x': tx, 'y': ty, } = utils.getEventPos(e);
     const win = utils.getWindow(e);
     let ox = 0, oy = 0, isLong = false;
@@ -37,7 +41,7 @@ export function long(e: PointerEvent, long: (e: PointerEvent) => void | Promise<
             Promise.resolve(long(e)).catch((err) => { throw err; });
         }
     }, opt?.time ?? 300);
-    down(e, {
+    down<T>(e, {
         down: opt?.down,
         move: (ne) => {
             const { x, y } = utils.getEventPos(ne);
