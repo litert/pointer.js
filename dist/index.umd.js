@@ -108,7 +108,6 @@
     }
 
     function down(oe, opt) {
-        const target = oe.target;
         const win = getWindow(oe);
         let { 'x': ox, 'y': oy } = getEventPos(oe);
         let isStart = false;
@@ -169,7 +168,6 @@
             }
         };
         if (isPointer) {
-            target?.setPointerCapture?.(oe.pointerId);
             win.addEventListener('pointermove', move, { 'passive': false });
             win.addEventListener('pointerup', end);
             win.addEventListener('pointercancel', end);
@@ -696,7 +694,6 @@
             }
         };
         down = (e) => {
-            target.setPointerCapture?.(e.pointerId);
             state.pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
             if (state.pointers.size === 2) {
                 const pts = Array.from(state.pointers.values());
@@ -704,7 +701,6 @@
                 state.lastPos = { 'x': (pts[0].x + pts[1].x) / 2, 'y': (pts[0].y + pts[1].y) / 2 };
             }
         };
-        target.setPointerCapture?.(oe.pointerId);
         win.addEventListener('pointermove', move, { 'passive': false });
         win.addEventListener('pointerup', up);
         win.addEventListener('pointercancel', up);

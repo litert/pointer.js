@@ -133,8 +133,6 @@ export function scale(oe: PointerEvent | WheelEvent, handler: types.TScaleHandle
     };
 
     down = (e: PointerEvent): void => {
-        // --- 捕获新指针 ---
-        target.setPointerCapture?.(e.pointerId);
         state.pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
         if (state.pointers.size === 2) {
             // --- 双指开始，计算初始距离和中心点 ---
@@ -144,8 +142,6 @@ export function scale(oe: PointerEvent | WheelEvent, handler: types.TScaleHandle
         }
     };
 
-    // --- 捕获当前指针 ---
-    target.setPointerCapture?.(oe.pointerId);
     // --- 绑定事件 ---
     win.addEventListener('pointermove', move, { 'passive': false });
     win.addEventListener('pointerup', up);

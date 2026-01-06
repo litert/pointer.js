@@ -22,8 +22,6 @@ import * as utils from './utils';
  * @param opt 回调选项
  */
 export function down<T extends PointerEvent | MouseEvent>(oe: T, opt: types.IDownOptions<T>): void {
-    /** --- 目标元素 --- */
-    const target = oe.target as HTMLElement;
     const win = utils.getWindow(oe);
     let { 'x': ox, 'y': oy } = utils.getEventPos(oe);
     /** --- 是否已经触发过 start 事件 --- */
@@ -93,7 +91,6 @@ export function down<T extends PointerEvent | MouseEvent>(oe: T, opt: types.IDow
 
     // --- 捕获指针以确保即使指针离开元素也能接收事件 ---
     if (isPointer) {
-        target?.setPointerCapture?.(oe.pointerId);
         win.addEventListener('pointermove', move as EventListener, { 'passive': false });
         win.addEventListener('pointerup', end as EventListener);
         win.addEventListener('pointercancel', end as EventListener);
