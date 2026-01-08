@@ -299,7 +299,6 @@
             justify-content: center;
             color: #64748b;
             font-weight: 600;
-            touch-action: none;
             cursor: grab;
         }
         .gesture-area .direction {
@@ -733,7 +732,7 @@
                 }, 1000);
             });
         }
-        gestureArea.addEventListener('pointerdown', handleGesture);
+        gestureArea.addEventListener('pointerdown', handleGesture, { 'passive': false });
         gestureArea.addEventListener('wheel', handleGesture, { 'passive': false });
 
         // --- menu 演示 ---

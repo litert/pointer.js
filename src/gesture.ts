@@ -106,17 +106,41 @@ export function gesture(
     const rect = el.getBoundingClientRect();
     const g = getGestureEl();
     if (oe instanceof PointerEvent) {
-        // --- pointer 触发的，dir 会和鼠标的 dir 相反，向下拖动是上方加载 ---
-        let offset = 0, origin = 0, first = 1;
+        // --- pointer 触发的，dir 会和 wheel 的 dir 相反，向下拖动是上方加载 ---
+        /** --- 当前手势的偏移量，用于计算手势进度 --- */
+        let offset = 0;
+        /** --- 手势开始时的初始坐标位置 --- */
+        let origin = 0;
+        /** --- 标志变量，用于控制手势初始化的逻辑 --- */
+        let first = 1;
+        /** --- 方向 --- */
         let dir: types.TDirection = 'top';
+        /** --- 标志变量，用于指示当前是否已经进入手势模式，用于动态禁止滚动 --- */
+        let isGesture = false;
+        /** --- 动态禁止滚动的监听器 --- */
+        const onTouchMove = (e: TouchEvent): void => {
+            if (isGesture && e.cancelable) {
+                e.preventDefault();
+            }
+        };
+        const win = utils.getWindow(oe);
+        if (oe.pointerType === 'touch') {
+            win.addEventListener('touchmove', onTouchMove, { 'passive': false });
+        }
         down(oe, {
             move: (e, d) => {
                 if (first < 0) {
                     if (first > -30) {
                         const rtn = before(e, dir);
                         if (rtn === 1) {
+                            isGesture = true;
                             e.stopPropagation();
-                            e.preventDefault();
+                            if (e.cancelable) {
+                                e.preventDefault();
+                            }
+                            if (el && e.pointerId !== undefined) {
+                                el.setPointerCapture(e.pointerId);
+                            }
                         }
                         else if (rtn === -1) {
                             e.stopPropagation();
@@ -130,8 +154,14 @@ export function gesture(
                     dir = reverseDir[d];
                     const rtn = before(e, dir);
                     if (rtn === 1) {
+                        isGesture = true;
                         e.stopPropagation();
-                        e.preventDefault();
+                        if (e.cancelable) {
+                            e.preventDefault();
+                        }
+                        if (el && e.pointerId !== undefined) {
+                            el.setPointerCapture(e.pointerId);
+                        }
                     }
                     else {
                         if (rtn === -1) {
@@ -150,6 +180,11 @@ export function gesture(
                 g.style.opacity = offset > 0 ? '1' : '0';
                 g.classList.toggle('pointer-gesture-done', offset >= 90);
                 updateGestureStyle(rect, dir, offset);
+            },
+            up: () => {
+                if (oe.pointerType === 'touch') {
+                    win.removeEventListener('touchmove', onTouchMove);
+                }
             },
             end: () => {
                 g.style.opacity = '0';

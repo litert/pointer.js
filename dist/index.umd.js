@@ -757,16 +757,34 @@
         const rect = el.getBoundingClientRect();
         const g = getGestureEl();
         if (oe instanceof PointerEvent) {
-            let offset = 0, origin = 0, first = 1;
+            let offset = 0;
+            let origin = 0;
+            let first = 1;
             let dir = 'top';
+            let isGesture = false;
+            const onTouchMove = (e) => {
+                if (isGesture && e.cancelable) {
+                    e.preventDefault();
+                }
+            };
+            const win = getWindow(oe);
+            if (oe.pointerType === 'touch') {
+                win.addEventListener('touchmove', onTouchMove, { 'passive': false });
+            }
             down(oe, {
                 move: (e, d) => {
                     if (first < 0) {
                         if (first > -30) {
                             const rtn = before(e, dir);
                             if (rtn === 1) {
+                                isGesture = true;
                                 e.stopPropagation();
-                                e.preventDefault();
+                                if (e.cancelable) {
+                                    e.preventDefault();
+                                }
+                                if (el && e.pointerId !== undefined) {
+                                    el.setPointerCapture(e.pointerId);
+                                }
                             }
                             else if (rtn === -1) {
                                 e.stopPropagation();
@@ -780,8 +798,14 @@
                         dir = reverseDir[d];
                         const rtn = before(e, dir);
                         if (rtn === 1) {
+                            isGesture = true;
                             e.stopPropagation();
-                            e.preventDefault();
+                            if (e.cancelable) {
+                                e.preventDefault();
+                            }
+                            if (el && e.pointerId !== undefined) {
+                                el.setPointerCapture(e.pointerId);
+                            }
                         }
                         else {
                             if (rtn === -1) {
@@ -800,6 +824,11 @@
                     g.style.opacity = offset > 0 ? '1' : '0';
                     g.classList.toggle('pointer-gesture-done', offset >= 90);
                     updateGestureStyle(rect, dir, offset);
+                },
+                up: () => {
+                    if (oe.pointerType === 'touch') {
+                        win.removeEventListener('touchmove', onTouchMove);
+                    }
                 },
                 end: () => {
                     g.style.opacity = '0';
