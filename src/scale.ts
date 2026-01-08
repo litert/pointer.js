@@ -56,8 +56,8 @@ function scaleWheel(oe: WheelEvent, handler: types.TScaleHandler): void {
  * @param handler 回调函数
  */
 export function scale(oe: PointerEvent | WheelEvent, handler: types.TScaleHandler): void {
-    if (oe instanceof WheelEvent) {
-        scaleWheel(oe, handler);
+    if (oe.type === 'wheel') {
+        scaleWheel(oe as WheelEvent, handler);
         return;
     }
     const target = oe.target as HTMLElement;
@@ -72,7 +72,7 @@ export function scale(oe: PointerEvent | WheelEvent, handler: types.TScaleHandle
         'lastSinglePos': { 'x': oe.clientX, 'y': oe.clientY }
     };
     // --- 记录第一个指针 ---
-    state.pointers.set(oe.pointerId, { 'x': oe.clientX, 'y': oe.clientY });
+    state.pointers.set((oe as PointerEvent).pointerId, { 'x': oe.clientX, 'y': oe.clientY });
 
     let down: ((e: PointerEvent) => void) | undefined = undefined;
 

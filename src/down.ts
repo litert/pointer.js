@@ -27,7 +27,7 @@ export function down<T extends PointerEvent | MouseEvent>(oe: T, opt: types.IDow
     /** --- 是否已经触发过 start 事件 --- */
     let isStart = false;
     /** --- 是否为 PointerEvent --- */
-    const isPointer = oe instanceof PointerEvent;
+    const isPointer = oe.type.startsWith('pointer');
 
     let end: ((e: T) => void) | undefined = undefined;
     const move = function(e: T): void {

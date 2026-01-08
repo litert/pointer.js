@@ -105,7 +105,7 @@ export function gesture(
     }
     const rect = el.getBoundingClientRect();
     const g = getGestureEl();
-    if (oe instanceof PointerEvent) {
+    if (oe.type.startsWith('pointer')) {
         // --- pointer 触发的，dir 会和 wheel 的 dir 相反，向下拖动是上方加载 ---
         /** --- 当前手势的偏移量，用于计算手势进度 --- */
         let offset = 0;
@@ -124,11 +124,13 @@ export function gesture(
             }
         };
         const win = utils.getWindow(oe);
-        if (oe.pointerType === 'touch') {
+        const pe = oe as PointerEvent;
+        if (pe.pointerType === 'touch') {
             win.addEventListener('touchmove', onTouchMove, { 'passive': false });
         }
         down(oe, {
             move: (e, d) => {
+                const p = e as PointerEvent;
                 if (first < 0) {
                     if (first > -30) {
                         const rtn = before(e, dir);
@@ -138,8 +140,8 @@ export function gesture(
                             if (e.cancelable) {
                                 e.preventDefault();
                             }
-                            if (el && e.pointerId !== undefined) {
-                                el.setPointerCapture(e.pointerId);
+                            if (el && p.pointerId !== undefined) {
+                                el.setPointerCapture(p.pointerId);
                             }
                         }
                         else if (rtn === -1) {
@@ -159,8 +161,8 @@ export function gesture(
                         if (e.cancelable) {
                             e.preventDefault();
                         }
-                        if (el && e.pointerId !== undefined) {
-                            el.setPointerCapture(e.pointerId);
+                        if (el && p.pointerId !== undefined) {
+                            el.setPointerCapture(p.pointerId);
                         }
                     }
                     else {
@@ -182,7 +184,7 @@ export function gesture(
                 updateGestureStyle(rect, dir, offset);
             },
             up: () => {
-                if (oe.pointerType === 'touch') {
+                if (pe.pointerType === 'touch') {
                     win.removeEventListener('touchmove', onTouchMove);
                 }
             },
@@ -211,20 +213,21 @@ export function gesture(
         if (gestureWheel.done) {
             return;
         }
-        let deltaY = oe.deltaY, deltaX = oe.deltaX;
+        const we = oe as WheelEvent;
+        let deltaY = we.deltaY, deltaX = we.deltaX;
         if (gestureWheel.dir === '') {
             gestureWheel.dir = utils.getMoveDir(deltaX, deltaY);
-            const rtn = before(oe, gestureWheel.dir);
+            const rtn = before(we, gestureWheel.dir);
             if (rtn === 1) {
                 // --- 才滚 ---
-                oe.stopPropagation();
-                if (oe.cancelable) {
-                    oe.preventDefault();
+                we.stopPropagation();
+                if (we.cancelable) {
+                    we.preventDefault();
                 }
             }
             else {
                 if (rtn === -1) {
-                    oe.stopPropagation();
+                    we.stopPropagation();
                     gestureWheel.done = true;
                 }
                 else {

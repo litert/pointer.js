@@ -185,7 +185,7 @@ export function move(e: PointerEvent, opt: types.IMoveOptions): types.IMoveResul
         left = areaRect.left + parseFloat(s.borderLeftWidth) + parseFloat(s.paddingLeft);
         top = areaRect.top + parseFloat(s.borderTopWidth) + parseFloat(s.paddingTop);
         right = areaRect.left + areaRect.width - parseFloat(s.borderRightWidth) - parseFloat(s.paddingRight);
-        bottom = areaRect.top + areaRect.height - parseFloat(s.borderRightWidth) - parseFloat(s.paddingRight);
+        bottom = areaRect.top + areaRect.height - parseFloat(s.borderBottomWidth) - parseFloat(s.paddingBottom);
     }
     else {
         left = opt.left ?? 0;

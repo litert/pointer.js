@@ -34,10 +34,10 @@ export function sleep(ms: number, win: Window = window): Promise<void> {
  * @param e 事件对象
  */
 export function isTouch(e: PointerEvent | MouseEvent): boolean {
-    if (!(e instanceof PointerEvent)) {
+    if (typeof (e as any).pointerId !== 'number') {
         return false;
     }
-    return e.pointerType === 'touch';
+    return (e as PointerEvent).pointerType === 'touch';
 }
 
 /**
@@ -65,7 +65,7 @@ export function getMoveDir(dx: number, dy: number): types.TDirection {
  */
 export function getWindow(e: PointerEvent | MouseEvent | HTMLElement): Window {
     // --- 优先判断 view 属性 (PointerEvent) ---
-    // if (e instanceof PointerEvent) { // --- 不能用 instanceof，因为可能跨 iframe ---
+    // if (e instanceof PointerEvent) {     // --- 不能用 instanceof，因为可能跨 iframe ---
     if (('view' in e) && e.view) {
         return e.view;
     }

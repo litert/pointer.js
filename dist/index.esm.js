@@ -2,7 +2,7 @@ function sleep(ms, win = window) {
     return new Promise(resolve => win.setTimeout(resolve, ms));
 }
 function isTouch(e) {
-    if (!(e instanceof PointerEvent)) {
+    if (typeof e.pointerId !== 'number') {
         return false;
     }
     return e.pointerType === 'touch';
@@ -105,7 +105,7 @@ function down(oe, opt) {
     const win = getWindow(oe);
     let { 'x': ox, 'y': oy } = getEventPos(oe);
     let isStart = false;
-    const isPointer = oe instanceof PointerEvent;
+    const isPointer = oe.type.startsWith('pointer');
     let end = undefined;
     const move = function (e) {
         if ((!e.target || !e.target.ownerDocument.body.contains(e.target))
@@ -253,7 +253,7 @@ function move(e, opt) {
         left = areaRect.left + parseFloat(s.borderLeftWidth) + parseFloat(s.paddingLeft);
         top = areaRect.top + parseFloat(s.borderTopWidth) + parseFloat(s.paddingTop);
         right = areaRect.left + areaRect.width - parseFloat(s.borderRightWidth) - parseFloat(s.paddingRight);
-        bottom = areaRect.top + areaRect.height - parseFloat(s.borderRightWidth) - parseFloat(s.paddingRight);
+        bottom = areaRect.top + areaRect.height - parseFloat(s.borderBottomWidth) - parseFloat(s.paddingBottom);
     }
     else {
         left = opt.left ?? 0;
@@ -625,7 +625,7 @@ function scaleWheel(oe, handler) {
     handler(oe, oe.deltaY < 0 ? 1 + zoomFactor : 1 - zoomFactor, { 'x': 0, 'y': 0 });
 }
 function scale(oe, handler) {
-    if (oe instanceof WheelEvent) {
+    if (oe.type === 'wheel') {
         scaleWheel(oe, handler);
         return;
     }
@@ -750,7 +750,7 @@ function gesture(oe, before, handler) {
     }
     const rect = el.getBoundingClientRect();
     const g = getGestureEl();
-    if (oe instanceof PointerEvent) {
+    if (oe.type.startsWith('pointer')) {
         let offset = 0;
         let origin = 0;
         let first = 1;
@@ -762,11 +762,13 @@ function gesture(oe, before, handler) {
             }
         };
         const win = getWindow(oe);
-        if (oe.pointerType === 'touch') {
+        const pe = oe;
+        if (pe.pointerType === 'touch') {
             win.addEventListener('touchmove', onTouchMove, { 'passive': false });
         }
         down(oe, {
             move: (e, d) => {
+                const p = e;
                 if (first < 0) {
                     if (first > -30) {
                         const rtn = before(e, dir);
@@ -776,8 +778,8 @@ function gesture(oe, before, handler) {
                             if (e.cancelable) {
                                 e.preventDefault();
                             }
-                            if (el && e.pointerId !== undefined) {
-                                el.setPointerCapture(e.pointerId);
+                            if (el && p.pointerId !== undefined) {
+                                el.setPointerCapture(p.pointerId);
                             }
                         }
                         else if (rtn === -1) {
@@ -797,8 +799,8 @@ function gesture(oe, before, handler) {
                         if (e.cancelable) {
                             e.preventDefault();
                         }
-                        if (el && e.pointerId !== undefined) {
-                            el.setPointerCapture(e.pointerId);
+                        if (el && p.pointerId !== undefined) {
+                            el.setPointerCapture(p.pointerId);
                         }
                     }
                     else {
@@ -820,7 +822,7 @@ function gesture(oe, before, handler) {
                 updateGestureStyle(rect, dir, offset);
             },
             up: () => {
-                if (oe.pointerType === 'touch') {
+                if (pe.pointerType === 'touch') {
                     win.removeEventListener('touchmove', onTouchMove);
                 }
             },
@@ -848,19 +850,20 @@ function gesture(oe, before, handler) {
         if (gestureWheel.done) {
             return;
         }
-        let deltaY = oe.deltaY, deltaX = oe.deltaX;
+        const we = oe;
+        let deltaY = we.deltaY, deltaX = we.deltaX;
         if (gestureWheel.dir === '') {
             gestureWheel.dir = getMoveDir(deltaX, deltaY);
-            const rtn = before(oe, gestureWheel.dir);
+            const rtn = before(we, gestureWheel.dir);
             if (rtn === 1) {
-                oe.stopPropagation();
-                if (oe.cancelable) {
-                    oe.preventDefault();
+                we.stopPropagation();
+                if (we.cancelable) {
+                    we.preventDefault();
                 }
             }
             else {
                 if (rtn === -1) {
-                    oe.stopPropagation();
+                    we.stopPropagation();
                     gestureWheel.done = true;
                 }
                 else {
