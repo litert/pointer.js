@@ -84,6 +84,11 @@ export function down<T extends PointerEvent | MouseEvent>(oe: T, opt: types.IDow
             win.removeEventListener('mouseup', end as EventListener);
         }
         opt.up?.(e) as any;
+        // --- 防止透穿到下层元素 ---
+        if (e.cancelable) {
+            e.preventDefault();
+        }
+        e.stopPropagation();
         if (isStart) {
             opt.end?.(e) as any;
         }
