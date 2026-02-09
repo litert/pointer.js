@@ -157,20 +157,6 @@ function down(oe, opt) {
             win.removeEventListener('mouseup', end);
         }
         opt.up?.(e);
-        if (e.cancelable) {
-            e.preventDefault();
-        }
-        e.stopPropagation();
-        const timeout = isTouch(e) ? 400 : 50;
-        const stopClick = (ce) => {
-            ce.stopPropagation();
-            ce.preventDefault();
-            win.removeEventListener('click', stopClick, true);
-        };
-        win.addEventListener('click', stopClick, true);
-        win.setTimeout(() => {
-            win.removeEventListener('click', stopClick, true);
-        }, timeout);
         if (isStart) {
             opt.end?.(e);
         }
