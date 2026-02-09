@@ -471,6 +471,21 @@
                 </div>
                 <div class="log" id="iframe-log">Interact with elements inside the iframe</div>
             </div>
+
+            <!-- click 透穿测试 -->
+            <div class="demo-card">
+                <h2>Click Penetration Test</h2>
+                <div class="demo-area" style="position: relative;">
+                    <div id="penetrate-bottom" style="width: 100%; height: 100%; background: #fee2e2; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #991b1b; font-weight: bold;">
+                        Bottom Layer (Should NOT receive click)
+                    </div>
+                    <div id="penetrate-top" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(59, 130, 246, 0.8); color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold;">
+                        Top Layer (Click to hide)
+                    </div>
+                </div>
+                <div class="log" id="penetrate-log">Click the blue layer.</div>
+                <button onclick="document.getElementById('penetrate-top').style.display = 'flex'; document.getElementById('penetrate-log').textContent='Top layer restored'; document.getElementById('penetrate-log').style.color='';" style="margin-top: 10px; padding: 5px 10px; cursor: pointer;">Restore Top Layer</button>
+            </div>
         
         </div>
     </div>
@@ -755,6 +770,30 @@
         const iframe = document.getElementById('test-iframe');
         const iframeLog = document.getElementById('iframe-log');
         
+        // --- click 透穿测试 ---
+        const penetrateTop = document.getElementById('penetrate-top');
+        const penetrateBottom = document.getElementById('penetrate-bottom');
+        const penetrateLog = document.getElementById('penetrate-log');
+
+        penetrateTop.addEventListener('pointerdown', function(e) {
+            pointer.click(e, function() {
+                penetrateTop.style.display = 'none';
+                penetrateLog.textContent = 'Top layer hidden by pointer.click';
+            });
+        });
+
+        penetrateBottom.addEventListener('click', function() {
+            penetrateLog.textContent = '❌ FAILED: Bottom layer received native click!';
+            penetrateLog.style.color = 'red';
+        });
+
+        penetrateBottom.addEventListener('pointerdown', function(e) {
+             pointer.click(e, function() {
+                penetrateLog.textContent = '❌ FAILED: Bottom layer received pointer.click!';
+                penetrateLog.style.color = 'red';
+            });
+        });
+
         iframe.onload = function() {
             const doc = iframe.contentDocument || iframe.contentWindow.document;
             doc.body.innerHTML = `

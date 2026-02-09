@@ -84,11 +84,26 @@ export function down<T extends PointerEvent | MouseEvent>(oe: T, opt: types.IDow
             win.removeEventListener('mouseup', end as EventListener);
         }
         opt.up?.(e) as any;
-        // --- 防止透穿到下层元素 ---
+
+        // --- 默认阻止透穿：取消原生事件的后续行为和冒泡 ---
         if (e.cancelable) {
             e.preventDefault();
         }
         e.stopPropagation();
+
+        // --- 核心：拦截并销毁紧随其后的原生 click 事件（解决幽灵点击/透穿） ---
+        // --- 电脑端延迟极低，50ms 足够；触屏设备存在约 300ms 的延迟，需延长至 400ms ---
+        const timeout = utils.isTouch(e) ? 400 : 50;
+        const stopClick = (ce: MouseEvent): void => {
+            ce.stopPropagation();
+            ce.preventDefault();
+            win.removeEventListener('click', stopClick, true);
+        };
+        win.addEventListener('click', stopClick, true);
+        win.setTimeout(() => {
+            win.removeEventListener('click', stopClick, true);
+        }, timeout);
+
         if (isStart) {
             opt.end?.(e) as any;
         }
