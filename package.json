@@ -1,6 +1,6 @@
 {
     "name": "@litert/pointer",
-    "version": "1.6.4",
+    "version": "1.6.5",
     "description": "A lightweight pointer event library for handling mouse, touch, and pen interactions in browsers.",
     "type": "module",
     "keywords": [
