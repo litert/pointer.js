@@ -157,6 +157,10 @@ function down(oe, opt) {
             win.removeEventListener('mouseup', end);
         }
         opt.up?.(e);
+        if (e.cancelable) {
+            e.preventDefault();
+        }
+        e.stopPropagation();
         if (isStart) {
             opt.end?.(e);
         }
