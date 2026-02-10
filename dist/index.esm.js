@@ -393,6 +393,28 @@ function dblClick(e, handler) {
         lastDblClickData.y = y;
     });
 }
+document.addEventListener('pointerdown', oe => {
+    click(oe, () => {
+        const tapEvent = new CustomEvent('tap', {
+            'bubbles': true,
+            'cancelable': true,
+            'detail': {
+                'originalEvent': oe,
+            },
+        });
+        oe.target?.dispatchEvent(tapEvent);
+    });
+    dblClick(oe, () => {
+        const dbltapEvent = new CustomEvent('dbltap', {
+            'bubbles': true,
+            'cancelable': true,
+            'detail': {
+                'originalEvent': oe,
+            },
+        });
+        oe.target?.dispatchEvent(dbltapEvent);
+    });
+}, true);
 
 let lastLongTime = 0;
 function long(e, long, opt) {
