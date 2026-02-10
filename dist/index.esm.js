@@ -377,14 +377,19 @@ const lastDblClickData = {
 function dblClick(e, handler) {
     click(e, (ne, x, y) => {
         const now = Date.now();
+        if (now === lastDblClickData.time) {
+            return;
+        }
         if (now - lastDblClickData.time <= 300) {
             const xx = Math.abs(x - lastDblClickData.x);
             const xy = Math.abs(y - lastDblClickData.y);
             if (xx < 10 && xy < 10) {
                 handler(ne, x, y);
-                lastDblClickData.time = 0;
-                lastDblClickData.x = 0;
-                lastDblClickData.y = 0;
+                setTimeout(() => {
+                    lastDblClickData.time = 0;
+                    lastDblClickData.x = 0;
+                    lastDblClickData.y = 0;
+                }, 300);
                 return;
             }
         }

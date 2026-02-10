@@ -63,6 +63,9 @@ export function dblClick(
     click(e, (ne, x, y) => {
         // --- 判断当前第几次点击 ---
         const now = Date.now();
+        if (now === lastDblClickData.time) {
+            return;
+        }
         if (now - lastDblClickData.time <= 300) {
             // --- 判断位置差别 ---
             const xx = Math.abs(x - lastDblClickData.x);
@@ -70,9 +73,12 @@ export function dblClick(
             if (xx < 10 && xy < 10) {
                 // --- 响应双击 ---
                 handler(ne, x, y) as any;
-                lastDblClickData.time = 0;
-                lastDblClickData.x = 0;
-                lastDblClickData.y = 0;
+                setTimeout(() => {
+                    // --- 重置数据 ---
+                    lastDblClickData.time = 0;
+                    lastDblClickData.x = 0;
+                    lastDblClickData.y = 0;
+                }, 300);
                 return;
             }
         }
