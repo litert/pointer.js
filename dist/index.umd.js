@@ -363,7 +363,7 @@
         const y = e.clientY;
         const time = Date.now();
         down(e, {
-            up: (ne) => {
+            up: ne => {
                 if (Date.now() - time >= 250) {
                     return;
                 }
@@ -383,10 +383,11 @@
     function dblClick(e, handler) {
         click(e, (ne, x, y) => {
             const now = Date.now();
-            if (now === lastDblClickData.time) {
+            const diff = now - lastDblClickData.time;
+            if (diff <= 50) {
                 return;
             }
-            if (now - lastDblClickData.time <= 300) {
+            if (diff <= 300) {
                 const xx = Math.abs(x - lastDblClickData.x);
                 const xy = Math.abs(y - lastDblClickData.y);
                 if (xx < 10 && xy < 10) {

@@ -31,7 +31,7 @@ export function click(
     const y = e.clientY;
     const time = Date.now();
     down(e, {
-        up: (ne) => {
+        up: ne => {
             if (Date.now() - time >= 250) {
                 return;
             }
@@ -63,15 +63,15 @@ export function dblClick(
     click(e, (ne, x, y) => {
         // --- 判断当前第几次点击 ---
         const now = Date.now();
-        if (now === lastDblClickData.time) {
+        const diff = now - lastDblClickData.time;
+        if (diff <= 50) {
             return;
         }
-        if (now - lastDblClickData.time <= 300) {
+        if (diff <= 300) {
             // --- 判断位置差别 ---
             const xx = Math.abs(x - lastDblClickData.x);
             const xy = Math.abs(y - lastDblClickData.y);
             if (xx < 10 && xy < 10) {
-                // --- 响应双击 ---
                 handler(ne, x, y) as any;
                 setTimeout(() => {
                     // --- 重置数据 ---
