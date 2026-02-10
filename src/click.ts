@@ -81,3 +81,38 @@ export function dblClick(
         lastDblClickData.y = y;
     });
 }
+
+// --- 全局新增 tap 和 dbltap 事件 ---
+
+document.addEventListener('pointerdown', oe => {
+    click(oe, () => {
+        // --- 创建 tap 的原生自定义事件 ---
+        const tapEvent = new CustomEvent('tap', {
+            // --- 让事件可以冒泡 ---
+            'bubbles': true,
+            // --- 允许阻止默认行为 ---
+            'cancelable': true,
+            'detail': {
+                // --- 把原始点击事件带过去 ---
+                'originalEvent': oe,
+            },
+        });
+        // --- 原生和 Vue 的 @tap 监听器此时会捕捉到这个事件 ---
+        oe.target?.dispatchEvent(tapEvent);
+    });
+    dblClick(oe, () => {
+        // --- 创建 dbltap 的原生自定义事件 ---
+        const dbltapEvent = new CustomEvent('dbltap', {
+            // --- 让事件可以冒泡 ---
+            'bubbles': true,
+            // --- 允许阻止默认行为 ---
+            'cancelable': true,
+            'detail': {
+                // --- 把原始点击事件带过去 ---
+                'originalEvent': oe,
+            },
+        });
+        // --- 原生和 Vue 的 @dbltap 监听器此时会捕捉到这个事件 ---
+        oe.target?.dispatchEvent(dbltapEvent);
+    });
+}, true);
