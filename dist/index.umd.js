@@ -815,11 +815,16 @@
                                 if (el && p.pointerId !== undefined) {
                                     el.setPointerCapture(p.pointerId);
                                 }
+                                const { x, y } = getEventPos(e);
+                                origin = (dir === 'top' || dir === 'bottom') ? y : x;
+                                first = 0;
                             }
-                            else if (rtn === -1) {
-                                e.stopPropagation();
+                            else {
+                                if (rtn === -1) {
+                                    e.stopPropagation();
+                                }
+                                --first;
                             }
-                            --first;
                         }
                         return;
                     }
@@ -877,9 +882,11 @@
                 gestureWheel.dir = '';
             }
             gestureWheel.last = now;
-            if (gestureWheel.dir !== '' && oe.cancelable) {
+            if (gestureWheel.dir !== '') {
                 oe.stopPropagation();
-                oe.preventDefault();
+                if (oe.cancelable) {
+                    oe.preventDefault();
+                }
             }
             if (gestureWheel.done) {
                 return;
@@ -898,11 +905,8 @@
                 else {
                     if (rtn === -1) {
                         we.stopPropagation();
-                        gestureWheel.done = true;
                     }
-                    else {
-                        gestureWheel.dir = '';
-                    }
+                    gestureWheel.dir = '';
                     return;
                 }
                 updateGestureStyle(rect, gestureWheel.dir, 0, true);
