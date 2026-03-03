@@ -358,12 +358,12 @@ function click(e, handler) {
     const time = Date.now();
     down(e, {
         up: ne => {
-            if (Date.now() - time >= 250) {
+            if (Date.now() - time >= 300) {
                 return;
             }
             const nx = ne.clientX;
             const ny = ne.clientY;
-            if (nx === x && ny === y) {
+            if (Math.abs(nx - x) < 5 && Math.abs(ny - y) < 5) {
                 handler(ne, nx, ny);
             }
         }
