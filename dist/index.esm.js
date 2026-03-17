@@ -204,10 +204,11 @@ function clampToBorder(val, prevVal, nowMin, nowMax, min, max, offsetMin, offset
         }
     }
     else {
-        if (val >= max) {
+        const m1 = max - 1;
+        if (val >= m1) {
             atMax = true;
-            if (val > max && val > prevVal) {
-                val = (prevVal < max) ? max : prevVal;
+            if (val > m1 && val > prevVal) {
+                val = (prevVal < m1) ? m1 : prevVal;
             }
         }
     }
