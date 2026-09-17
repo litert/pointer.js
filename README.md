@@ -279,22 +279,85 @@ dropTarget.addEventListener('drop', (e) => {
 });
 ```
 
-#### `scale(e, handler)`
+#### `scale(e, handler, options?)`
 
-Scale/zoom event, supports pinch-to-zoom on touch devices and mouse wheel.
+Tracks single-pointer panning, multi-touch pinch zoom, and mouse-wheel zoom. Existing
+`scale(e, (e, scale, cpos) => ...)` calls continue to work. The return value is an
+idempotent function that ends the active pointer gesture and removes its listeners.
+
+The handler receives `(event, scale, cpos, detail)`:
+
+- `scale`: positive incremental multiplier, `1` for panning.
+- `cpos`: incremental **movement** of the center, not its absolute position.
+- `detail.mode`: `'pan'`, `'pinch'`, or `'wheel'`.
+- `detail.center` / `detail.previousCenter`: current and previous center in viewport
+  CSS pixels, in the same coordinate system as `clientX` / `clientY`. Wheel events
+  use the mouse position for both centers.
+- `detail.pointers`: number of pressed pointers in this gesture; `0` for wheel events.
+
+Options:
+
+- `target`: gesture region. Defaults to the event's `currentTarget` element, then
+  its `target` element. Supply it explicitly when forwarding events from a document
+  listener or invoking `scale` after event dispatch.
+- `signal`: an `AbortSignal` for teardown, for example when a component unmounts.
+- `onPointers(event, count)`: called immediately when a pointer joins or is released,
+  including the initial count of `1` and normal completion at `0`. An editor can
+  use the transition to `2` to cancel its pending single-pointer edit.
+- `onEnd(event, reason)`: called once after pointer-session cleanup. Reasons are
+  `'up'`, `'cancel'`, `'blur'`, `'abort'`, and `'dispose'`. The event is absent for
+  abort/dispose. Use this callback to reset interaction state on every exit path.
+  Wheel events are synchronous and do not start a session or call these callbacks.
+
+Each region has one active pointer session, using its first call's handler and
+options. Subsequent pointer downs join that session; they do not add duplicate
+listeners. A pointer must begin inside the region, and cannot belong to two
+sessions. The first two active pointers drive the pinch; extra pointers can take
+over when one is lifted, without a positional jump. Any participating pointer's
+`pointercancel`, window blur, abort, or disposal ends the entire session.
+
+Set `touch-action: none` on the gesture region **before** touch starts, so the
+browser does not take over with native scrolling. Register the wheel listener as
+non-passive. The library does not change element styles or apply transforms.
 
 ```typescript
-element.addEventListener('pointerdown', (e) => {
-    pointer.scale(e, (e, scale, cpos) => {
-        console.log('Scale:', scale, 'Center:', cpos.x, cpos.y);
-    });
-});
-element.addEventListener('wheel', (e) => {
-    pointer.scale(e, (e, scale, cpos) => {
-        console.log('Scale:', scale, 'Center:', cpos.x, cpos.y);
-    });
-});
+// CSS: .viewport { touch-action: none; overflow: hidden; }
+// CSS: .content { transform-origin: 0 0; }
+// The viewport is untransformed and the content starts at its inner top-left.
+let zoom = 1;
+let offset = { x: 0, y: 0 };
+const lifetime = new AbortController();
+
+const handler: pointer.TScaleHandler = (event, factor, cpos, detail) => {
+    const rect = element.getBoundingClientRect();
+    const origin = { x: rect.left + element.clientLeft, y: rect.top + element.clientTop };
+    const nextZoom = Math.max(0.05, Math.min(20, zoom * factor));
+    const applied = nextZoom / zoom;
+    // Keep the content point under the gesture center fixed while zooming.
+    offset = {
+        x: detail.center.x - origin.x - (detail.previousCenter.x - origin.x - offset.x) * applied,
+        y: detail.center.y - origin.y - (detail.previousCenter.y - origin.y - offset.y) * applied
+    };
+    zoom = nextZoom;
+    content.style.transform = `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`;
+};
+
+element.addEventListener('pointerdown', (event) => {
+    pointer.scale(event, handler, { signal: lifetime.signal });
+}, { signal: lifetime.signal });
+element.addEventListener('wheel', (event) => {
+    pointer.scale(event, handler, { signal: lifetime.signal });
+}, { passive: false, signal: lifetime.signal });
+
+// On unmount: removes the application's listeners and cancels any active gesture.
+// lifetime.abort();
 ```
+
+Wheel pixel, line, and page deltas are normalized (one line = 16 CSS pixels; one
+page = the region height). Exponential scaling keeps large deltas positive and
+bounds a single event to a multiplier between `1/e` and `e`. Equal opposite deltas
+cancel each other. Absolute zoom limits, fit-to-view, and UI state synchronization
+belong to the consuming control.
 
 #### `gesture(e, before, handler)`
 
@@ -553,6 +616,28 @@ Global hook function type for move up events.
 ```typescript
 type TMoveUpHook = (e: PointerEvent, opt: IMoveOptions) => void | Promise<void>;
 ```
+
+## Development
+
+```bash
+npm install
+npm run check
+npm test
+npm run build
+npm pack --dry-run
+```
+
+`npm run check` runs `tsc --noEmit`. The default TypeScript configuration also sets
+`noEmit: true`, so running `tsc` directly only checks types and writes no files.
+`npm run build` uses `tsconfig.build.json` to generate the library's declaration
+files under `dist/src/`, then Rollup creates the ESM, UMD, and minified UMD bundles.
+The per-module `.d.ts` files are required by the package's type entry; per-module
+`.js` files and compiled build scripts are not distribution artifacts. Node.js
+types are required by the build script; the library itself runs in the browser.
+
+The npm package includes only these bundles and `dist/src/**/*.d.ts`, plus the
+standard package metadata, README, and license. Source files, build scripts,
+tests, and demos are excluded from the publish allowlist.
 
 ## Demo
 

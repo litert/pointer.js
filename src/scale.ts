@@ -17,134 +17,238 @@
 import * as types from './types';
 import * as utils from './utils';
 
-/** --- 多指针追踪数据 --- */
-interface IPointerData {
-    'x': number;
-    'y': number;
+/** --- 每个区域只有一个活动手势，避免每次 pointerdown 重复注册监听 --- */
+interface IScaleSession {
+    add: (e: PointerEvent) => void;
+    dispose: () => void;
 }
 
-/** --- 缩放状态 --- */
-interface IScaleState {
-    /** --- 指针列表 --- */
-    'pointers': Map<number, IPointerData>;
-    /** --- 上次双指距离 --- */
-    'lastDis': number;
-    /** --- 上次双指中心点 --- */
-    'lastPos': { 'x': number; 'y': number; };
-    /** --- 上次单指位置 --- */
-    'lastSinglePos': { 'x': number; 'y': number; };
+/** --- 活动区域索引，清理时释放引用 --- */
+const sessions = new WeakMap<Element, IScaleSession>();
+
+/** --- 同一个指针只能属于一个手势，避免嵌套区域和相邻区域相互接管 --- */
+const owners = new WeakMap<Window, Map<number, IScaleSession>>();
+
+/**
+ * --- 判断跨窗口的事件目标是否是元素，不依赖当前窗口的 Element 构造器 ---
+ * @param target 事件目标
+ * @returns 是否是元素
+ */
+function isElement(target: EventTarget | null): target is Element {
+    return !!target && ('nodeType' in target) && target.nodeType === 1;
 }
 
 /**
- * --- 绑定滚轮缩放 ---
- * @param oe 触发的 WheelEvent 事件
- * @param handler 回调函数
+ * --- 不创建手势时返回同样可调用的清理函数 ---
+ * @returns 无返回值
  */
-function scaleWheel(oe: WheelEvent, handler: types.TScaleHandler): void {
-    if (!oe.deltaY) {
+function noop(): void {
+    // --- 滚轮或被忽略的事件没有持续监听 ---
+}
+
+/**
+ * --- 归一化滚轮单位，以始终为正的指数倍率缩放 ---
+ * @param e 滚轮事件
+ * @param target 手势区域
+ * @param handler 缩放回调
+ * @returns 无返回值
+ */
+function scaleWheel(e: WheelEvent, target: Element, handler: types.TScaleHandler): void {
+    if (!Number.isFinite(e.deltaY) || !e.deltaY) {
         return;
     }
-    oe.preventDefault();
-    const delta = Math.abs(oe.deltaY);
-    const zoomFactor = delta * (delta > 50 ? 0.0015 : 0.003);
-    handler(oe, oe.deltaY < 0 ? 1 + zoomFactor : 1 - zoomFactor, { 'x': 0, 'y': 0 }) as any;
+    const win = target.ownerDocument.defaultView ?? utils.getWindow(e);
+    const unit = e.deltaMode === 1 ? 16 : (e.deltaMode === 2 ? (target.clientHeight || win.innerHeight) : 1);
+    const factor = Math.exp(Math.max(-1, Math.min(1, -e.deltaY * unit * 0.002)));
+    const center = { 'x': e.clientX, 'y': e.clientY };
+    if (e.cancelable) {
+        e.preventDefault();
+    }
+    const pending = handler(e, factor, { 'x': 0, 'y': 0 }, {
+        'mode': 'wheel', 'center': center, 'previousCenter': { ...center }, 'pointers': 0
+    });
+    pending?.catch((error: unknown) => {
+        win.setTimeout(() => { throw error; }, 0);
+    });
 }
 
 /**
- * --- 绑定指针缩放/拖动，只需绑定到 pointerdown、或 wheel 事件（也可同时绑定）上，其他事件自动绑定并在结束后自动移除 ---
- * @param oe 触发的 PointerEvent 事件
- * @param handler 回调函数
+ * --- 从 pointerdown / wheel 开始平移缩放；同一区域的多指按下共用一个会话 ---
+ * @param oe 起始事件；触屏区域需预先设置 touch-action: none
+ * @param handler 增量倍率、中心位移和几何信息的回调
+ * @param opt 区域、取消信号及生命周期通知
+ * @returns 幂等清理函数；用于主动结束手势或控件卸载
  */
-export function scale(oe: PointerEvent | WheelEvent, handler: types.TScaleHandler): void {
+export function scale(
+    oe: PointerEvent | WheelEvent, handler: types.TScaleHandler, opt: types.IScaleOptions = {}
+): () => void {
+    const candidate = opt.target ?? (isElement(oe.currentTarget) ? oe.currentTarget : oe.target);
+    if (!isElement(candidate) || opt.signal?.aborted) {
+        return noop;
+    }
+    const target = candidate;
     if (oe.type === 'wheel') {
-        scaleWheel(oe as WheelEvent, handler);
-        return;
+        scaleWheel(oe as WheelEvent, target, handler);
+        return noop;
     }
-    const target = oe.target as HTMLElement;
-    if (!target) {
-        return;
+    const first = oe as PointerEvent;
+    if (oe.type !== 'pointerdown' || first.button !== 0) {
+        return noop;
     }
-    // --- 初始化状态 ---
-    const state: IScaleState = {
-        'pointers': new Map(),
-        'lastDis': 0,
-        'lastPos': { 'x': 0, 'y': 0 },
-        'lastSinglePos': { 'x': oe.clientX, 'y': oe.clientY }
+    if (!oe.composedPath().includes(target) && (!isElement(oe.target) || !target.contains(oe.target))) {
+        return noop;
+    }
+    const win = target.ownerDocument.defaultView ?? utils.getWindow(oe);
+    const pointerOwners = owners.get(win) ?? new Map<number, IScaleSession>();
+    if (!owners.has(win)) {
+        owners.set(win, pointerOwners);
+    }
+    const existing = sessions.get(target);
+    if (existing) {
+        existing.add(first);
+        return existing.dispose;
+    }
+    if (pointerOwners.has(first.pointerId)) {
+        return noop;
+    }
+
+    /** --- Map 插入顺序保持双指组合稳定；额外指针只在前面的指针离开后接替 --- */
+    const pointers = new Map<number, types.IScalePoint>();
+    let previousCenter: types.IScalePoint = { 'x': first.clientX, 'y': first.clientY };
+    let previousDistance = 0;
+    let active = true;
+    const session: IScaleSession = {
+        'add': add,
+        'dispose': (): void => { finish('dispose'); }
     };
-    // --- 记录第一个指针 ---
-    state.pointers.set((oe as PointerEvent).pointerId, { 'x': oe.clientX, 'y': oe.clientY });
 
-    let down: ((e: PointerEvent) => void) | undefined = undefined;
+    /** --- 指针加入/离开后重置基线，避免 1/2/3 指切换时画面跳动 --- */
+    const geometry = (): { 'center': types.IScalePoint; 'distance': number; } => {
+        const points = pointers.values();
+        const a = points.next().value ?? previousCenter;
+        const b = points.next().value;
+        return b ? {
+            'center': { 'x': (a.x + b.x) / 2, 'y': (a.y + b.y) / 2 },
+            'distance': Math.hypot(a.x - b.x, a.y - b.y)
+        } : { 'center': { ...a }, 'distance': 0 };
+    };
+    const rebase = (): void => {
+        const next = geometry();
+        previousCenter = next.center;
+        previousDistance = next.distance;
+    };
 
-    const move = (e: PointerEvent): void => {
-        if (!state.pointers.has(e.pointerId)) {
-            // --- 新指针加入 ---
-            state.pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
-            if (state.pointers.size === 2) {
-                // --- 双指开始，计算初始距离和中心点 ---
-                const pts = Array.from(state.pointers.values());
-                state.lastDis = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-                state.lastPos = { 'x': (pts[0].x + pts[1].x) / 2, 'y': (pts[0].y + pts[1].y) / 2 };
-            }
+    function finish(reason: types.TScaleEndReason, e?: Event): void {
+        if (!active) {
             return;
         }
-        // --- 更新指针位置 ---
-        state.pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
-        if (state.pointers.size >= 2) {
-            // --- 双指缩放 ---
-            const pts = Array.from(state.pointers.values());
-            const newDis = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-            const newPos = { 'x': (pts[0].x + pts[1].x) / 2, 'y': (pts[0].y + pts[1].y) / 2 };
-            const scaleVal = state.lastDis > 0 ? newDis / state.lastDis : 1;
-            const dx = newPos.x - state.lastPos.x;
-            const dy = newPos.y - state.lastPos.y;
-            handler(e, scaleVal, { 'x': dx, 'y': dy }) as any;
-            state.lastDis = newDis;
-            state.lastPos = newPos;
+        active = false;
+        win.removeEventListener('pointermove', move);
+        win.removeEventListener('pointerup', up);
+        win.removeEventListener('pointercancel', cancel);
+        win.removeEventListener('pointerdown', add);
+        win.removeEventListener('blur', blur);
+        opt.signal?.removeEventListener('abort', abort);
+        sessions.delete(target);
+        for (const id of pointers.keys()) {
+            pointerOwners.delete(id);
         }
-        else {
-            // --- 单指拖动 ---
-            const dx = e.clientX - state.lastSinglePos.x;
-            const dy = e.clientY - state.lastSinglePos.y;
-            if (dx !== 0 || dy !== 0) {
-                handler(e, 1, { 'x': dx, 'y': dy }) as any;
-                state.lastSinglePos = { 'x': e.clientX, 'y': e.clientY };
+        pointers.clear();
+        try {
+            if (e?.type === 'pointerup') {
+                opt.onPointers?.(e as PointerEvent, 0);
             }
         }
-    };
-
-    const win = utils.getWindow(oe);
-
-    const up = (e: PointerEvent): void => {
-        state.pointers.delete(e.pointerId);
-        if (state.pointers.size === 1) {
-            // --- 恢复为单指，重置状态 ---
-            state.lastDis = 0;
-            const pts = Array.from(state.pointers.values());
-            state.lastSinglePos = { 'x': pts[0].x, 'y': pts[0].y };
+        finally {
+            opt.onEnd?.(e, reason);
         }
-        if (state.pointers.size === 0) {
-            // --- 所有指针都释放，移除事件监听 ---
-            win.removeEventListener('pointermove', move);
-            win.removeEventListener('pointerup', up);
-            win.removeEventListener('pointercancel', up);
-            win.removeEventListener('pointerdown', down as EventListener);
+    }
+
+    const notifyPointers = (e: PointerEvent): void => {
+        try {
+            opt.onPointers?.(e, pointers.size);
+        }
+        catch (error) {
+            finish('cancel', e);
+            throw error;
         }
     };
 
-    down = (e: PointerEvent): void => {
-        state.pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
-        if (state.pointers.size === 2) {
-            // --- 双指开始，计算初始距离和中心点 ---
-            const pts = Array.from(state.pointers.values());
-            state.lastDis = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-            state.lastPos = { 'x': (pts[0].x + pts[1].x) / 2, 'y': (pts[0].y + pts[1].y) / 2 };
+    function add(e: PointerEvent): void {
+        if (!active || e.button !== 0 || pointers.has(e.pointerId) || pointerOwners.has(e.pointerId)) {
+            return;
         }
-    };
+        /** --- 使用事件路径兼容 Shadow DOM；区域外的新指针不能加入 --- */
+        if (!e.composedPath().includes(target) && (!isElement(e.target) || !target.contains(e.target))) {
+            return;
+        }
+        pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
+        pointerOwners.set(e.pointerId, session);
+        rebase();
+        notifyPointers(e);
+    }
 
-    // --- 绑定事件 ---
+    function move(e: PointerEvent): void {
+        if (!active || !pointers.has(e.pointerId)) {
+            return;
+        }
+        pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
+        const next = geometry();
+        const cpos = { 'x': next.center.x - previousCenter.x, 'y': next.center.y - previousCenter.y };
+        const factor = previousDistance > 0 && next.distance > 0 ? next.distance / previousDistance : 1;
+        const detail: types.IScaleDetail = {
+            'mode': pointers.size > 1 ? 'pinch' : 'pan',
+            'center': next.center, 'previousCenter': previousCenter, 'pointers': pointers.size
+        };
+        previousCenter = next.center;
+        previousDistance = next.distance;
+        if (!cpos.x && !cpos.y && factor === 1) {
+            return;
+        }
+        if (e.cancelable) {
+            e.preventDefault();
+        }
+        try {
+            const pending = handler(e, factor, cpos, detail);
+            if (pending) {
+                pending.catch((error: unknown) => {
+                    finish('cancel', e);
+                    win.setTimeout(() => { throw error; }, 0);
+                });
+            }
+        }
+        catch (error) {
+            finish('cancel', e);
+            throw error;
+        }
+    }
+
+    function up(e: PointerEvent): void {
+        if (!active || !pointers.delete(e.pointerId)) {
+            return;
+        }
+        pointerOwners.delete(e.pointerId);
+        if (!pointers.size) {
+            finish('up', e);
+            return;
+        }
+        rebase();
+        notifyPointers(e);
+    }
+    function cancel(e: PointerEvent): void {
+        if (pointers.has(e.pointerId)) {
+            finish('cancel', e);
+        }
+    }
+    function blur(e: Event): void { finish('blur', e); }
+    function abort(): void { finish('abort'); }
+    sessions.set(target, session);
     win.addEventListener('pointermove', move, { 'passive': false });
     win.addEventListener('pointerup', up);
-    win.addEventListener('pointercancel', up);
-    win.addEventListener('pointerdown', down);
+    win.addEventListener('pointercancel', cancel);
+    win.addEventListener('pointerdown', add);
+    win.addEventListener('blur', blur);
+    opt.signal?.addEventListener('abort', abort, { 'once': true });
+    add(first);
+    return session.dispose;
 }

@@ -643,90 +643,191 @@ function drag(e, el, opt) {
     });
 }
 
-function scaleWheel(oe, handler) {
-    if (!oe.deltaY) {
-        return;
-    }
-    oe.preventDefault();
-    const delta = Math.abs(oe.deltaY);
-    const zoomFactor = delta * (delta > 50 ? 0.0015 : 0.003);
-    handler(oe, oe.deltaY < 0 ? 1 + zoomFactor : 1 - zoomFactor, { 'x': 0, 'y': 0 });
+const sessions = new WeakMap();
+const owners = new WeakMap();
+function isElement(target) {
+    return !!target && ('nodeType' in target) && target.nodeType === 1;
 }
-function scale(oe, handler) {
+function noop() {
+}
+function scaleWheel(e, target, handler) {
+    if (!Number.isFinite(e.deltaY) || !e.deltaY) {
+        return;
+    }
+    const win = target.ownerDocument.defaultView ?? getWindow(e);
+    const unit = e.deltaMode === 1 ? 16 : (e.deltaMode === 2 ? (target.clientHeight || win.innerHeight) : 1);
+    const factor = Math.exp(Math.max(-1, Math.min(1, -e.deltaY * unit * 0.002)));
+    const center = { 'x': e.clientX, 'y': e.clientY };
+    if (e.cancelable) {
+        e.preventDefault();
+    }
+    const pending = handler(e, factor, { 'x': 0, 'y': 0 }, {
+        'mode': 'wheel', 'center': center, 'previousCenter': { ...center }, 'pointers': 0
+    });
+    pending?.catch((error) => {
+        win.setTimeout(() => { throw error; }, 0);
+    });
+}
+function scale(oe, handler, opt = {}) {
+    const candidate = opt.target ?? (isElement(oe.currentTarget) ? oe.currentTarget : oe.target);
+    if (!isElement(candidate) || opt.signal?.aborted) {
+        return noop;
+    }
+    const target = candidate;
     if (oe.type === 'wheel') {
-        scaleWheel(oe, handler);
-        return;
+        scaleWheel(oe, target, handler);
+        return noop;
     }
-    const target = oe.target;
-    if (!target) {
-        return;
+    const first = oe;
+    if (oe.type !== 'pointerdown' || first.button !== 0) {
+        return noop;
     }
-    const state = {
-        'pointers': new Map(),
-        'lastDis': 0,
-        'lastPos': { 'x': 0, 'y': 0 },
-        'lastSinglePos': { 'x': oe.clientX, 'y': oe.clientY }
+    if (!oe.composedPath().includes(target) && (!isElement(oe.target) || !target.contains(oe.target))) {
+        return noop;
+    }
+    const win = target.ownerDocument.defaultView ?? getWindow(oe);
+    const pointerOwners = owners.get(win) ?? new Map();
+    if (!owners.has(win)) {
+        owners.set(win, pointerOwners);
+    }
+    const existing = sessions.get(target);
+    if (existing) {
+        existing.add(first);
+        return existing.dispose;
+    }
+    if (pointerOwners.has(first.pointerId)) {
+        return noop;
+    }
+    const pointers = new Map();
+    let previousCenter = { 'x': first.clientX, 'y': first.clientY };
+    let previousDistance = 0;
+    let active = true;
+    const session = {
+        'add': add,
+        'dispose': () => { finish('dispose'); }
     };
-    state.pointers.set(oe.pointerId, { 'x': oe.clientX, 'y': oe.clientY });
-    let down = undefined;
-    const move = (e) => {
-        if (!state.pointers.has(e.pointerId)) {
-            state.pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
-            if (state.pointers.size === 2) {
-                const pts = Array.from(state.pointers.values());
-                state.lastDis = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-                state.lastPos = { 'x': (pts[0].x + pts[1].x) / 2, 'y': (pts[0].y + pts[1].y) / 2 };
-            }
+    const geometry = () => {
+        const points = pointers.values();
+        const a = points.next().value ?? previousCenter;
+        const b = points.next().value;
+        return b ? {
+            'center': { 'x': (a.x + b.x) / 2, 'y': (a.y + b.y) / 2 },
+            'distance': Math.hypot(a.x - b.x, a.y - b.y)
+        } : { 'center': { ...a }, 'distance': 0 };
+    };
+    const rebase = () => {
+        const next = geometry();
+        previousCenter = next.center;
+        previousDistance = next.distance;
+    };
+    function finish(reason, e) {
+        if (!active) {
             return;
         }
-        state.pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
-        if (state.pointers.size >= 2) {
-            const pts = Array.from(state.pointers.values());
-            const newDis = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-            const newPos = { 'x': (pts[0].x + pts[1].x) / 2, 'y': (pts[0].y + pts[1].y) / 2 };
-            const scaleVal = state.lastDis > 0 ? newDis / state.lastDis : 1;
-            const dx = newPos.x - state.lastPos.x;
-            const dy = newPos.y - state.lastPos.y;
-            handler(e, scaleVal, { 'x': dx, 'y': dy });
-            state.lastDis = newDis;
-            state.lastPos = newPos;
+        active = false;
+        win.removeEventListener('pointermove', move);
+        win.removeEventListener('pointerup', up);
+        win.removeEventListener('pointercancel', cancel);
+        win.removeEventListener('pointerdown', add);
+        win.removeEventListener('blur', blur);
+        opt.signal?.removeEventListener('abort', abort);
+        sessions.delete(target);
+        for (const id of pointers.keys()) {
+            pointerOwners.delete(id);
         }
-        else {
-            const dx = e.clientX - state.lastSinglePos.x;
-            const dy = e.clientY - state.lastSinglePos.y;
-            if (dx !== 0 || dy !== 0) {
-                handler(e, 1, { 'x': dx, 'y': dy });
-                state.lastSinglePos = { 'x': e.clientX, 'y': e.clientY };
+        pointers.clear();
+        try {
+            if (e?.type === 'pointerup') {
+                opt.onPointers?.(e, 0);
             }
         }
-    };
-    const win = getWindow(oe);
-    const up = (e) => {
-        state.pointers.delete(e.pointerId);
-        if (state.pointers.size === 1) {
-            state.lastDis = 0;
-            const pts = Array.from(state.pointers.values());
-            state.lastSinglePos = { 'x': pts[0].x, 'y': pts[0].y };
+        finally {
+            opt.onEnd?.(e, reason);
         }
-        if (state.pointers.size === 0) {
-            win.removeEventListener('pointermove', move);
-            win.removeEventListener('pointerup', up);
-            win.removeEventListener('pointercancel', up);
-            win.removeEventListener('pointerdown', down);
+    }
+    const notifyPointers = (e) => {
+        try {
+            opt.onPointers?.(e, pointers.size);
+        }
+        catch (error) {
+            finish('cancel', e);
+            throw error;
         }
     };
-    down = (e) => {
-        state.pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
-        if (state.pointers.size === 2) {
-            const pts = Array.from(state.pointers.values());
-            state.lastDis = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-            state.lastPos = { 'x': (pts[0].x + pts[1].x) / 2, 'y': (pts[0].y + pts[1].y) / 2 };
+    function add(e) {
+        if (!active || e.button !== 0 || pointers.has(e.pointerId) || pointerOwners.has(e.pointerId)) {
+            return;
         }
-    };
+        if (!e.composedPath().includes(target) && (!isElement(e.target) || !target.contains(e.target))) {
+            return;
+        }
+        pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
+        pointerOwners.set(e.pointerId, session);
+        rebase();
+        notifyPointers(e);
+    }
+    function move(e) {
+        if (!active || !pointers.has(e.pointerId)) {
+            return;
+        }
+        pointers.set(e.pointerId, { 'x': e.clientX, 'y': e.clientY });
+        const next = geometry();
+        const cpos = { 'x': next.center.x - previousCenter.x, 'y': next.center.y - previousCenter.y };
+        const factor = previousDistance > 0 && next.distance > 0 ? next.distance / previousDistance : 1;
+        const detail = {
+            'mode': pointers.size > 1 ? 'pinch' : 'pan',
+            'center': next.center, 'previousCenter': previousCenter, 'pointers': pointers.size
+        };
+        previousCenter = next.center;
+        previousDistance = next.distance;
+        if (!cpos.x && !cpos.y && factor === 1) {
+            return;
+        }
+        if (e.cancelable) {
+            e.preventDefault();
+        }
+        try {
+            const pending = handler(e, factor, cpos, detail);
+            if (pending) {
+                pending.catch((error) => {
+                    finish('cancel', e);
+                    win.setTimeout(() => { throw error; }, 0);
+                });
+            }
+        }
+        catch (error) {
+            finish('cancel', e);
+            throw error;
+        }
+    }
+    function up(e) {
+        if (!active || !pointers.delete(e.pointerId)) {
+            return;
+        }
+        pointerOwners.delete(e.pointerId);
+        if (!pointers.size) {
+            finish('up', e);
+            return;
+        }
+        rebase();
+        notifyPointers(e);
+    }
+    function cancel(e) {
+        if (pointers.has(e.pointerId)) {
+            finish('cancel', e);
+        }
+    }
+    function blur(e) { finish('blur', e); }
+    function abort() { finish('abort'); }
+    sessions.set(target, session);
     win.addEventListener('pointermove', move, { 'passive': false });
     win.addEventListener('pointerup', up);
-    win.addEventListener('pointercancel', up);
-    win.addEventListener('pointerdown', down);
+    win.addEventListener('pointercancel', cancel);
+    win.addEventListener('pointerdown', add);
+    win.addEventListener('blur', blur);
+    opt.signal?.addEventListener('abort', abort, { 'once': true });
+    add(first);
+    return session.dispose;
 }
 
 const gestureWheel = {

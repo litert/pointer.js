@@ -19,3 +19,4 @@ package-lock.json
 /src/
 /dist/test/
 /scripts/
+/test/

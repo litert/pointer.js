@@ -19,16 +19,20 @@
     "types": "./dist/src/index.d.ts",
     "exports": {
         ".": {
+            "types": "./dist/src/index.d.ts",
             "import": "./dist/index.esm.js",
-            "require": "./dist/index.umd.js",
-            "types": "./dist/index.d.ts"
+            "require": "./dist/index.umd.js"
         }
     },
     "files": [
-        "dist",
-        "src"
+        "dist/index.esm.js",
+        "dist/index.umd.js",
+        "dist/index.umd.min.js",
+        "dist/src/**/*.d.ts"
     ],
     "scripts": {
+        "check": "tsc --noEmit",
+        "test": "node test/scale.test.mjs",
         "build": "npx ts-node --esm scripts/build.ts",
         "prepublishOnly": "npm run build"
     },
@@ -43,6 +47,7 @@
     },
     "homepage": "https://github.com/litert/pointer.js#readme",
     "devDependencies": {
+        "@types/node": "^24.10.1",
         "@litert/eslint-plugin-rules": "^0.3.1",
         "@rollup/plugin-terser": "^0.4.4",
         "@rollup/plugin-typescript": "^12.3.0",

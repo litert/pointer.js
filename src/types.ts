@@ -176,8 +176,42 @@ export interface IDragOptions {
     end?: (moveTimes: IMoveTime[], e: PointerEvent) => void;
 }
 
-/** --- scale 回调函数类型 --- */
-export type TScaleHandler = (e: PointerEvent | WheelEvent, scale: number, cpos: { 'x': number; 'y': number; }) => void | Promise<void>;
+/** --- scale 中的坐标均使用视口 CSS 像素，与 clientX/clientY 一致 --- */
+export interface IScalePoint {
+    'x': number;
+    'y': number;
+}
+
+/** --- scale 本次变化的几何信息，不包含应用自身的累计缩放状态 --- */
+export interface IScaleDetail {
+    'mode': 'pan' | 'pinch' | 'wheel';
+    /** --- 当前中心点；滚轮为鼠标位置 --- */
+    'center': IScalePoint;
+    /** --- 变化前的中心点；滚轮与 center 相同 --- */
+    'previousCenter': IScalePoint;
+    /** --- 当前手势内按下的指针数；滚轮为 0 --- */
+    'pointers': number;
+}
+
+/** --- 指针手势结束的原因 --- */
+export type TScaleEndReason = 'up' | 'cancel' | 'blur' | 'abort' | 'dispose';
+
+/** --- scale 可选配置，重复按下加入同一目标的现有手势，使用首次调用的配置 --- */
+export interface IScaleOptions {
+    /** --- 手势所属区域，默认 currentTarget 元素，其次为 target 元素 --- */
+    'target'?: Element;
+    /** --- 主动中止手势，例如控件卸载时 --- */
+    'signal'?: AbortSignal;
+    /** --- 指针加入或离开时立即通知，可用于取消单指编辑 --- */
+    onPointers?: (e: PointerEvent, pointers: number) => void;
+    /** --- 指针手势结束后调用一次；滚轮没有持续会话，不触发此回调 --- */
+    onEnd?: (e: Event | undefined, reason: TScaleEndReason) => void;
+}
+
+/** --- 前三个参数保持兼容；cpos 是中心位移，不是中心坐标 --- */
+export type TScaleHandler = (
+    e: PointerEvent | WheelEvent, scale: number, cpos: IScalePoint, detail: IScaleDetail
+) => void | Promise<void>;
 
 /** --- gesture before 回调函数类型，返回 1 显示 gesture，0 不处理，-1 stopPropagation --- */
 export type TGestureBeforeHandler = (e: PointerEvent | WheelEvent, dir: TDirection) => number;

@@ -1,17 +1,19 @@
 {
     "compilerOptions": {
         "module": "esnext",
+        "noEmit": true,
         "removeComments": true,
         "preserveConstEnums": true,
         "rootDir": "./",
         "outDir": "./dist/",
         "sourceMap": false,
         "target": "ES2022",
+        "types": ["node"],
         "strict": true,
         "declaration": true,
         "declarationMap": false,
         "newLine": "LF",
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "resolveJsonModule": true,
         "esModuleInterop": true,
         "skipLibCheck": true

@@ -1,11 +1,11 @@
+import { execSync } from 'node:child_process';
 import { rollup } from 'rollup';
 import typescript from '@rollup/plugin-typescript';
 import terser from '@rollup/plugin-terser';
-import { execSync } from 'child_process';
 
 async function build(): Promise<void> {
     // --- 生成声明文件 ---
-    execSync('npx tsc --declaration --emitDeclarationOnly --removeComments false', { 'stdio': 'inherit' });
+    execSync('npx tsc -p tsconfig.build.json', { 'stdio': 'inherit' });
 
     // --- ESM 格式 ---
     const esmBundle = await rollup({
@@ -13,6 +13,7 @@ async function build(): Promise<void> {
         'plugins': [
             typescript({
                 'tsconfig': './tsconfig.json',
+                'noEmit': false,
                 'declaration': false
             })
         ]
@@ -30,6 +31,7 @@ async function build(): Promise<void> {
         'plugins': [
             typescript({
                 'tsconfig': './tsconfig.json',
+                'noEmit': false,
                 'declaration': false
             }),
             terser()
@@ -49,6 +51,7 @@ async function build(): Promise<void> {
         'plugins': [
             typescript({
                 'tsconfig': './tsconfig.json',
+                'noEmit': false,
                 'declaration': false
             })
         ]
@@ -64,4 +67,7 @@ async function build(): Promise<void> {
     console.log('Build completed!');
 }
 
-build().catch(console.error);
+build().catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+});
